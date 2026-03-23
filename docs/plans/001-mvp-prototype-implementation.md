@@ -162,6 +162,13 @@ Definition of done:
 - dependency injection graph is valid
 - local metrics endpoint is reachable in the compose environment
 
+Required automated test scenarios:
+
+- build passes from the repo root
+- service starts and exposes health
+- service exposes metrics
+- compose boot path works from a clean local runtime
+
 Verification checkpoint:
 
 - `./gradlew build`
@@ -199,6 +206,14 @@ Definition of done:
 - migrations apply cleanly on empty local database
 - repository methods cover core create, update, lookup, and idempotency paths
 - terminal cart states reject irrelevant late mutation updates as no-op writes
+
+Required automated test scenarios:
+
+- state row insert and fetch
+- stale version update rejected
+- terminal cart rewrite rejected
+- recovery attempt scheduling is idempotent
+- recovery attempt execution outcome persists
 
 Verification checkpoint:
 
@@ -244,6 +259,13 @@ Definition of done:
 - producers can publish test messages with consistent keys
 - bad payloads fail clearly and are observable
 
+Required automated test scenarios:
+
+- JSON round-trip for core event payloads
+- topic bootstrap creates required topics
+- producer and consumer round-trip a minimal valid message
+- malformed or unexpected JSON is surfaced clearly without silent success
+
 Verification checkpoint:
 
 - local publish and consume smoke test using the simplest valid message shape
@@ -283,6 +305,17 @@ Definition of done:
 - purchase and delete events close the cart for recovery purposes
 - out-of-order late mutations do not re-open or corrupt terminal cart state
 
+Required automated test scenarios:
+
+- mutation on active cart writes `ACTIVE` state
+- state event transitions cart to `PURCHASED`
+- state event transitions cart to `DELETED`
+- `cart_abandoned` state event marks abandonment correctly once that path is wired
+- late mutation after terminal purchase is a no-op
+- late mutation after delete is a no-op
+- malformed or unknown event type is ignored or rejected in an observable way
+- out-of-order delivery does not regress state version or reopen terminal carts
+
 Verification checkpoint:
 
 - processor smoke test that proves consume -> log -> DB write
@@ -290,6 +323,8 @@ Verification checkpoint:
   - add/remove on active cart
   - purchase before late add
   - delete before late remove
+  - malformed event handling
+  - out-of-order delivery handling
 
 Commit checkpoint:
 
@@ -319,6 +354,13 @@ Definition of done:
 
 - abandoned cart gets a deterministic resolved policy
 - experiment metadata is available downstream without re-evaluation
+
+Required automated test scenarios:
+
+- repeated evaluation of the same cart resolves the same experiment assignment
+- policy selection returns expected waterfall touches
+- resolved experiment and policy metadata are persisted for downstream use
+- unknown experiment configuration fails clearly
 
 Verification checkpoint:
 
@@ -353,6 +395,14 @@ Definition of done:
 
 - a valid abandoned cart creates the expected attempts once
 - replaying the same abandoned event does not duplicate attempts
+
+Required automated test scenarios:
+
+- initial abandoned event creates expected attempts
+- duplicate abandoned event replay does not create duplicates
+- scheduler persists experiment attribution on created attempts
+- scheduler emits `attempt_scheduled` analytics
+- out-of-order abandoned event handling does not schedule against an ineligible terminal cart
 
 Verification checkpoint:
 
@@ -396,6 +446,16 @@ Definition of done:
 - eligible attempts call mock notification send exactly once
 - retries do not create duplicate sends
 
+Required automated test scenarios:
+
+- happy-path send succeeds
+- purchased cart is suppressed before send
+- deleted cart is suppressed before send
+- frequency-cap denial suppresses send
+- provider failure marks attempt failed
+- replay or retry does not create duplicate sends
+- eligibility hooks are extensible enough to add future checks such as out-of-stock
+
 Verification checkpoint:
 
 - executor tests for:
@@ -435,6 +495,15 @@ Definition of done:
 
 - scheduling and execution paths emit analyzable structured events
 - emitted payloads contain enough fields for experiment attribution
+
+Required automated test scenarios:
+
+- `policy_selected` payload contains experiment and policy attribution
+- `attempt_scheduled` payload contains attempt metadata
+- `attempt_sent` payload contains channel and template metadata
+- `attempt_suppressed` payload contains suppression reason
+- `attempt_failed` payload contains failure reason
+- analytics publisher can emit to Kafka topic successfully
 
 Verification checkpoint:
 
@@ -476,6 +545,14 @@ Definition of done:
 
 - local end-to-end suite passes reproducibly
 - expected DB rows and analytics events match the scenario
+
+Required automated test scenarios:
+
+- happy path from cart activity to scheduled attempt to mock send
+- suppression path where purchase arrives before execution
+- analytics continuity across schedule and execution
+- experiment attribution continuity across the full flow
+- replay of upstream events does not create duplicate attempts or sends
 
 Verification checkpoint:
 

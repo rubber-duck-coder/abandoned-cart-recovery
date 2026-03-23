@@ -1491,3 +1491,74 @@ The M4 milestone is now published on `origin/main` in commit `858cbd3`. The repo
 Notes:
 One follow-up log-only commit is still needed to publish this entry itself. The unrelated untracked file `excalidraw.log` remains excluded.
 ---
+
+---
+Timestamp: 2026-03-23 14:34 local
+
+User Request:
+Tighten the MVP execution plan so each milestone explicitly states which test scenarios should be covered.
+
+Codex Plan:
+- Review the current execution plan against the already implemented and still-missing test coverage.
+- Update the plan to make milestone-level unit and integration expectations explicit, including malformed events, replay, and out-of-order scenarios.
+- Keep the plan practical and aligned with the iterative execution style already agreed for the prototype.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Reviewed `docs/plans/001-mvp-prototype-implementation.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the execution-plan refinement is recorded. No plan text has been changed yet in this pass.
+
+Notes:
+The main gap to close is making test ownership by milestone more explicit so a fresh Codex session knows exactly what confidence checks belong in each phase.
+---
+
+---
+Timestamp: 2026-03-23 14:34 local
+
+User Request:
+Tighten the MVP execution plan so each milestone explicitly states which test scenarios should be covered.
+
+Codex Plan:
+- Make milestone-level automated test expectations explicit instead of leaving them implied by broad checkpoints.
+- Add missing coverage expectations for malformed events, replay, and out-of-order scenarios.
+- Keep the wording aligned with the iterative prototype approach so tests can start simple and grow with each milestone.
+
+Actions Taken:
+- Updated `docs/plans/001-mvp-prototype-implementation.md`.
+- Added `Required automated test scenarios` sections to milestones `M1` through `M9`.
+- Expanded `M4` through `M9` to call out malformed-event handling, replay safety, out-of-order delivery, experiment attribution continuity, and analytics payload checks.
+
+Outcome:
+The execution plan now states much more clearly which tests belong in each milestone. A fresh Codex session should be able to use the plan as both a task list and a confidence checklist.
+
+Notes:
+The plan is updated locally only. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 14:36 local
+
+User Request:
+Push the execution-plan refinement and continue to the next milestone.
+
+Codex Plan:
+- Stage only the execution-plan and dev-log updates for the recent test-coverage refinement.
+- Commit and push those documentation changes to `origin/main`.
+- After the push, start M5 with the smallest policy-resolution and experiment-attribution slice.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the documentation publish step and M5 kickoff is recorded. The documentation changes are still local at this point.
+
+Notes:
+The unrelated untracked file `excalidraw.log` remains excluded.
+---
