@@ -2092,6 +2092,79 @@ The main goal is milestone closure: prove the integrated flow clearly in dedicat
 ---
 
 ---
+Timestamp: 2026-03-23 15:11 local
+
+User Request:
+Assess milestone status against `001` and explicitly mark what is complete versus what still remains.
+
+Codex Plan:
+- Compare the execution plan against the actual implemented tests and runtime slices now present in the repository.
+- Update the plan with explicit milestone status rather than leaving it at a generic proposed state.
+- Call out only real residual gaps, especially where coverage is partial rather than absent.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Read `docs/plans/001-mvp-prototype-implementation.md`.
+- Enumerated the current test inventory under `apps/recovery-service/src/test/kotlin`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the milestone assessment is recorded. No plan text has been changed yet in this pass.
+
+Notes:
+The likely outcome is that the core MVP milestones are substantially complete, with a smaller set of residual gaps around explicit analytics events and a few planned edge-case tests.
+---
+
+---
+Timestamp: 2026-03-23 15:12 local
+
+User Request:
+Assess milestone status against `001` and explicitly mark what is complete versus what still remains.
+
+Codex Plan:
+- Reflect actual implementation status directly in the execution plan.
+- Distinguish fully completed milestones from mostly completed milestones with concrete residual gaps.
+- Keep the residual list short and factual so the next decision is easy.
+
+Actions Taken:
+- Updated `docs/plans/001-mvp-prototype-implementation.md`.
+- Changed overall plan status from `Proposed` to `In Review`.
+- Added a `Milestone Status` table covering `M1` through `M9`.
+- Added a `Residual Gaps` section calling out the remaining analytics and replay-focused gaps.
+
+Outcome:
+The execution plan now states the current implementation status explicitly. `M1` through `M7` are marked completed, while `M8` and `M9` are marked mostly completed with a small, concrete residual gap list.
+
+Notes:
+The remaining work is now clearly in polish territory rather than core pipeline construction. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 15:13 local
+
+User Request:
+Commit and push the milestone assessment updates.
+
+Codex Plan:
+- Stage only the execution-plan assessment and append-only dev-log updates.
+- Exclude the unrelated untracked file `excalidraw.log`.
+- Create a commit for the milestone assessment and push `main` to `origin`.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the milestone-assessment publish is recorded. The assessment updates remain local at this point.
+
+Notes:
+The scope of this checkpoint is documentation only.
+---
+
+---
 Timestamp: 2026-03-23 15:09 local
 
 User Request:
