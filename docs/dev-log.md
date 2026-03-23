@@ -1756,6 +1756,75 @@ This log entry itself is local until it is included in the follow-up log-only co
 ---
 
 ---
+Timestamp: 2026-03-23 16:33 local
+
+User Request:
+Create a new `003` plan focused on the identity stitching piece.
+
+Codex Plan:
+- Reuse the existing RFC decisions for anonymous-to-known identity stitching instead of introducing a new design direction.
+- Write a focused execution plan covering identity-link ingestion, recovery-state merge rules, attempt rebinding behavior, and end-to-end verification.
+- Keep this slice planning-only and leave implementation for a later step.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed the identity-stitching sections in `docs/rfc/abandoned-cart-recovery-system.md`, `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md`, and `docs/plans/001-mvp-prototype-implementation.md`.
+- Appended this planning entry before creating the new plan document.
+
+Outcome:
+Planning for the identity-stitching execution plan is recorded. The next step is to add a dedicated `003` plan in `docs/plans/` that turns the existing RFC intent into implementable milestones and checkpoints.
+
+Notes:
+This is a gap-closing follow-up to the MVP review, not a change in architecture. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
+Timestamp: 2026-03-23 16:33 local
+
+User Request:
+Create a new `003` plan focused on the identity stitching piece.
+
+Codex Plan:
+- Reuse the existing RFC decisions for anonymous-to-known identity stitching instead of introducing a new design direction.
+- Write a focused execution plan covering identity-link ingestion, recovery-state merge rules, attempt rebinding behavior, and end-to-end verification.
+- Keep this slice planning-only and leave implementation for a later step.
+
+Actions Taken:
+- Added `docs/plans/003-identity-stitching-implementation.md`.
+
+Outcome:
+Plan `003` is now created. It breaks the identity-stitching work into three milestones: explicit identity-link event handling and recovery-state merge rules, rebinding of eligible future recovery attempts to the known user identity, and focused integration plus E2E coverage for the anonymous-to-known flow.
+
+Notes:
+The new plan intentionally keeps the first implementation cart-scoped and simple. It also leaves a small set of execution-time questions open, such as the exact prototype `stateType` for identity link and which non-terminal attempt states should be eligible for rebinding.
+---
+
+---
+Timestamp: 2026-03-23 16:37 local
+
+User Request:
+Lock the open questions for Plan 003, commit and push the plan, and then move into execution.
+
+Codex Plan:
+- Record the agreed identity-stitching defaults directly in Plan 003 so execution can proceed without ambiguity.
+- Publish the locked plan before starting implementation.
+- Begin with the smallest implementation slice: explicit `identity_linked` handling in the state-event path.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed `docs/plans/003-identity-stitching-implementation.md`.
+- Appended this planning entry before updating the plan and starting implementation.
+
+Outcome:
+Planning for the locked identity-stitching execution path is recorded. The next steps are to lock the plan, publish it, and then begin `I1`.
+
+Notes:
+The agreed defaults are: use `identity_linked` as the prototype state-event type, rebind only `SCHEDULED` attempts in v1, keep already-scheduled policy and experiment context stable, prefer `user_id` for frequency capping when known, and allow identity updates on terminal carts without reopening eligibility.
+---
+
+---
 Timestamp: 2026-03-23 16:27 local
 
 User Request:
