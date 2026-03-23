@@ -97,3 +97,17 @@ If you are unable to complete a task, still append a log entry that includes:
 
 These logging rules apply to all repository work unless the user explicitly instructs otherwise.
 If there is a conflict between convenience and logging compliance, logging compliance wins.
+
+## Working Style
+
+- Avoid over engineering.
+- Work step by step.
+- Start simple and only introduce complexity to solve an actual problem.
+- Do not write code until explicitly told to do so.
+- Keep responses concise.
+
+## Deliverable Workflow
+
+- Write RFCs in `docs/rfc`.
+- Write execution plans in `docs/plans`.
+- Name execution plans with a numeric prefix such as `001-` so future plans can be ordered consistently.
