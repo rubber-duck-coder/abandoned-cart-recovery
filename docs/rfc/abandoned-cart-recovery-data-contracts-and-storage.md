@@ -29,6 +29,7 @@ This document should eventually define:
 
 - inbound event contract expectations
 - explicit topic names and processor responsibilities
+- experimentation-platform integration contract
 - normalized internal recovery event shape
 - `cart_recovery_state` logical schema
 - `recovery_attempt` logical schema
@@ -36,10 +37,12 @@ This document should eventually define:
 - status enums and suppression-reason taxonomy
 - idempotency and uniqueness constraints
 - storage access patterns for scheduler and executor
+- frequency-capping integration contract
+- analytics event contract for experiment analysis
 
 ## Initial Modeling Directions
 
-### Processing Lanes
+### Topic Topology
 
 This document should later define how the architecture-level topic split is implemented.
 
@@ -77,16 +80,45 @@ Associated processors:
 - `CartStateEventProcessor`
   - consumes `recovery.cart-state-events`
   - writes purchase, delete or empty-cart, identity, and other critical state transitions directly into shared recovery state
-  - emits `recovery.cart-abandoned` when abandonment criteria are met
+  - consumes upstream `cart_abandoned` events as part of the state-event stream
+  - emits validated internal scheduler input into `recovery.cart-abandoned`
 
 - `RecoveryScheduler`
   - consumes `recovery.cart-abandoned`
+  - consumes the policy-selection result including stable experiment assignment
   - creates recovery attempts
+  - emits structured scheduling analytics
   - enqueues due work into `recovery.recovery-attempts`
 
 - `RecoveryExecutor`
   - consumes `recovery.recovery-attempts`
-  - performs final eligibility checks and notification sends
+  - performs final eligibility checks, frequency-cap checks, and notification sends
+  - emits structured send, suppress, cap, and failure analytics
+
+### Upstream Assumptions Captured in Contracts
+
+- The inactivity logic that produces `cart_abandoned` is owned upstream and is out of scope here.
+- The purchase-complete source of truth is a successful checkout event that carries a terminal cart-to-order identifier such as `order_id`, `shipment_id`, or `delivery_id`.
+- Event delivery is at-least-once and can arrive out of order.
+
+### Experimentation Integration Model
+
+This design assumes an external experimentation platform that can evaluate active experiments by `experiment_id` or `experiment_name`.
+
+Design decisions:
+- experiment evaluation happens in the Recovery Policy Service boundary
+- experiment assignment must be stable before schedule creation
+- scheduler and executor consume persisted experiment metadata and must not re-evaluate the experiment mid-flight
+
+Minimum returned fields from experiment evaluation:
+- `experiment_id`
+- `experiment_name`
+- `variant_id`
+- `policy_id`
+- `policy_version`
+- selected cadence and channel sequence
+- selected template family
+- any experiment-controlled knobs such as cap thresholds or suppression flags
 
 ### Cart Recovery State
 
@@ -118,6 +150,9 @@ Likely fields:
 - `attempt_id`
 - `cart_id`
 - touch index
+- `experiment_id`
+- `experiment_name`
+- `variant_id`
 - policy id and policy version
 - scheduled timestamp
 - execution timestamp
@@ -126,6 +161,7 @@ Likely fields:
 - status
 - suppression reason
 - send idempotency key
+- frequency-cap decision
 - provider response metadata
 
 ### Eligibility Evaluation Model
@@ -139,6 +175,59 @@ Likely fields and concerns:
 - distinction between terminal suppression and retryable dependency failure
 - future checks such as inventory, opt-out, merchant pause, or fraud state
 
+### Frequency Capping Integration Model
+
+This document should define the implementation-facing contract for frequency capping before notification send.
+
+Likely fields and concerns:
+- user or delivery identity used for capping
+- channel-level and campaign-level capping inputs
+- allow or suppress decision
+- structured suppression reason for observability
+- replay-safe behavior when duplicate work reaches the executor
+
+### Analytics Event Model
+
+This design requires structured analytics events to flow into a downstream analytics pipeline for experiment analysis.
+
+Minimum emission points:
+- policy selected
+- recovery attempt scheduled
+- recovery attempt suppressed
+- recovery attempt sent
+- recovery attempt failed
+- frequency cap suppressed
+
+Minimum payload fields:
+- `cart_id`
+- `user_id` when known
+- `attempt_id` when applicable
+- `experiment_id`
+- `experiment_name`
+- `variant_id`
+- `policy_id`
+- `policy_version`
+- `channel`
+- `template_key`
+- `event_type`
+- `event_timestamp`
+- suppression or failure reason when applicable
+
+Ownership:
+- Recovery Policy Service emits or returns policy-selection analytics context
+- Recovery Scheduler emits scheduling analytics
+- Recovery Executor emits send, suppress, cap, and failure analytics
+
+### Experiment Auditability Requirements
+
+Attempt and decision records should be sufficient to answer:
+- which experiment the cart or user was in
+- which variant was assigned
+- which policy and policy version were selected
+- which channel and template were chosen
+- why the attempt was sent or suppressed
+- which analytics events should exist for downstream experiment analysis
+
 ## Contract Design Principles
 
 - External event shape and internal normalized event shape should be explicitly separated.
@@ -147,10 +236,10 @@ Likely fields and concerns:
 - Contract evolution should prefer additive changes.
 - Topic names and processor boundaries are explicit design choices, while vendor-specific transport implementation remains an implementation detail.
 
-## Open Questions
+## Resolved Design Defaults
 
-- What is the canonical event id and ordering guarantee from upstream systems?
-- Should state versioning be event-based, sequence-based, or timestamp-based?
-- Which fields must be denormalized into the attempt record for auditability?
-- How long should attempts and suppression records be retained?
-- What exact uniqueness constraint should prevent duplicate scheduling for the same touch?
+- Canonical event identity should come from the upstream event id, with per-topic replay tolerance built around that id.
+- State versioning should use a per-cart monotonic `state_version` updated on accepted writes.
+- Attempt records should denormalize the fields needed for auditability: `cart_id`, `user_id` when known, `experiment_id`, `experiment_name`, `variant_id`, `policy_id`, `policy_version`, channel, template key, scheduled time, execution time, suppression reason, frequency-cap result, and provider result.
+- Attempt and suppression records should default to a 90-day retention window unless product or compliance requirements override it later.
+- Duplicate scheduling should be prevented with a deterministic attempt identity derived from `cart_id`, `policy_version`, `touch_index`, and scheduled timestamp.

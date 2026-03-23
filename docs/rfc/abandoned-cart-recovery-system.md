@@ -14,6 +14,25 @@ The system should be designed for production scale first. A smaller MVP prototyp
 
 - [Abandoned Cart Recovery: Data Contracts and Storage Design](./abandoned-cart-recovery-data-contracts-and-storage.md)
 
+## Assumptions
+
+- The exact inactivity rule that defines abandonment is owned upstream by a separate team and is out of scope for this design.
+- This system consumes an upstream-generated `cart_abandoned` event rather than deriving abandonment locally.
+- A successful cart-to-order transition is represented by a successful checkout event that includes an order-like terminal identifier such as `order_id`, `shipment_id`, or `delivery_id`.
+- Upstream delivery is at-least-once and can arrive out of order due to normal distributed-systems failures and retries.
+- Push, email, and SMS are all in scope for the target system and the MVP.
+- A simple initial policy can use a waterfall such as `24h push`, `72h sms`, and `7d email`, while the data model remains flexible enough to support parallel sends when needed.
+
+## External Dependencies
+
+- Upstream commerce event producers, including the team that emits `cart_abandoned`.
+- Checkout or order systems that emit the cart-to-order completion event.
+- Identity systems that link anonymous and known users.
+- An experimentation platform that can evaluate active experiments using `experiment_id` or `experiment_name`.
+- Notification providers for push, email, and SMS.
+- A frequency-capping service or module that can be queried before send.
+- An analytics pipeline that can ingest structured recovery and experiment events.
+
 ## Goals
 
 - Capture cart state changes in near real time.
@@ -21,7 +40,7 @@ The system should be designed for production scale first. A smaller MVP prototyp
 - Schedule configurable recovery sequences such as `30m`, `24h`, and `72h`.
 - Enforce a final safety check before sending any recovery message.
 - Remain resilient during traffic spikes without duplicate scheduling or duplicate sends.
-- Support experimentation on cadence, channel, and template selection.
+- Support first-class experimentation on cadence, channel, template selection, and related growth controls.
 - Provide telemetry, monitoring, and a controlled rollout path.
 
 ## Non-Goals
@@ -37,6 +56,7 @@ The system should be designed for production scale first. A smaller MVP prototyp
 - A cart can begin anonymous and later become associated with a user identity.
 - Recovery messages are transactional re-engagement sends, not broad marketing blasts.
 - The Growth team will want to evolve timing and message strategy without changing core scheduler code.
+- Policy selection should be extensible enough to support future inputs such as cart value, user intent, merchant tier, or ML-driven policy choice.
 
 ## Requirements
 
@@ -44,9 +64,10 @@ The system should be designed for production scale first. A smaller MVP prototyp
 
 - Ingest cart lifecycle events such as add, remove, checkout start, purchase complete, cart emptied, `cart_abandoned`, and identity linked.
 - Maintain the latest recovery-relevant cart state.
-- Detect when a cart becomes eligible for recovery scheduling.
+- Consume upstream-generated `cart_abandoned` events and turn them into scheduled recovery attempts.
 - Create a recovery sequence from a policy rather than from hardcoded timing logic.
 - Re-check current cart state immediately before send.
+- Query a frequency-capping module before send.
 - Suppress sends for purchased, emptied, or otherwise ineligible carts.
 - Avoid duplicate schedules and duplicate sends under retries.
 
@@ -88,6 +109,16 @@ The system should be designed for production scale first. A smaller MVP prototyp
 +-------------------+   +-------------------------------+
                                     |
                                     v
+                          +-------------------------+
+                          | Recovery Policy Service |
+                          +-------------------------+
+                                    |
+                                    v
+                          +-------------------------+
+                          | Experiment Evaluation   |
+                          +-------------------------+
+                                    |
+                                    v
                           +--------------------+
                           | Recovery Scheduler |
                           +--------------------+
@@ -109,12 +140,30 @@ The system should be designed for production scale first. A smaller MVP prototyp
                                     |
                                     v
                           +-----------------------+
+                          | Frequency Cap Check   |
+                          +-----------------------+
+                                    |
+                                    v
+                          +-----------------------+
+                          | Analytics Event       |
+                          | Publisher             |
+                          +-----------------------+
+                                    |
+                                    +----------------------+
+                                    |                      |
+                                    v                      v
+                          +-----------------------+
                           | Notification Adapter  |
                           +-----------------------+
                                     |
                                     v
                           +-----------------------+
                           | Email / Push / SMS    |
+                          +-----------------------+
+                                    |
+                                    v
+                          +-----------------------+
+                          | Analytics Pipeline    |
                           +-----------------------+
 ```
 
@@ -136,6 +185,7 @@ Approach:
 - High-volume mutation events such as `item_added` and `item_removed` should be routed to a dedicated mutations topic with its own processor fleet.
 - Critical events such as `purchase_completed`, `cart_emptied`, `cart_abandoned`, identity-link events, and other state-invalidating signals should be routed to a separate state-events topic with its own processor fleet.
 - Scheduler-triggering `cart_abandoned` events should flow through a dedicated intermediate topic so scheduling can scale independently from state mutation handling.
+- The `cart_abandoned` signal itself is assumed to be determined upstream; this system validates and consumes it rather than deriving inactivity windows locally.
 - Scheduler and executor decisions should rely on current state plus critical invalidation signals, not on draining every mutation event in perfect order.
 - This reduces head-of-line blocking risk during traffic spikes while preserving send-suppression correctness.
 
@@ -149,7 +199,7 @@ The processor fleets should write directly to the shared recovery state store ra
 Responsibilities:
 - `Mutation Processor` applies cart mutations directly into recovery state.
 - `State Event Processor` applies purchase, delete, empty-cart, identity, and other critical state transitions directly into recovery state.
-- `State Event Processor` emits `cart_abandoned` after a successful state transition when abandonment criteria are met.
+- `State Event Processor` consumes upstream `cart_abandoned` events and republishes valid scheduler input to the internal abandoned-cart topic.
 - Late `item_added` and `item_removed` events become no-op writes once the cart is already in a terminal non-active state such as purchased or deleted.
 - Correctness is enforced with per-cart idempotency, conditional updates, and version checks in the state store.
 
@@ -162,7 +212,10 @@ Provides the recovery sequence definition.
 
 Responsibilities:
 - Return the policy for a cart or user context.
+- Evaluate the active experiment through the experimentation platform using `experiment_id` or `experiment_name`.
+- Resolve a stable `variant_id` for the cart or user journey before schedule creation.
 - Keep cadence, channel, and template selection in configuration.
+- Return experiment-scoped policy outputs such as cadence, channel sequence, template family, and any experiment-controlled knobs.
 - Start with one default policy in v1 while leaving room for future urgency tiers.
 
 Detailed policy versioning and persistence should be captured in the companion doc:
@@ -175,6 +228,7 @@ Schedules future recovery attempts based on policy.
 Responsibilities:
 - Create attempt records for each scheduled touch.
 - Ensure schedule creation is idempotent.
+- Persist experiment attribution such as `experiment_id`, `experiment_name`, `variant_id`, `policy_id`, and `policy_version` on each scheduled attempt.
 - Track attempt status such as `scheduled`, `suppressed`, `sent`, `failed`, or `cancelled`.
 
 Storage shape, uniqueness constraints, and attempt lifecycle fields should be defined in:
@@ -187,8 +241,10 @@ Processes due attempts and performs the final safety interlock.
 Responsibilities:
 - Load the current cart state at execution time.
 - Run an extensible eligibility evaluation before send.
+- Query the frequency-capping integration before send so replayed or duplicated pipeline work does not spam the user.
 - Suppress the attempt if the cart is no longer eligible.
 - Call the notification provider only after the final eligibility check passes.
+- Emit structured analytics events for suppression, send, frequency-cap, and failure outcomes.
 - Record the final outcome with an idempotent send key.
 
 ### 7. Eligibility Evaluator
@@ -204,7 +260,19 @@ Responsibilities:
 The rule contract, suppression taxonomy, and state inputs for these checks should be specified in:
 - [Eligibility and suppression modeling details](./abandoned-cart-recovery-data-contracts-and-storage.md)
 
-### 8. Notification Adapter
+### 8. Frequency Capping Integration
+
+The executor should consult a frequency-capping module before the notification call.
+
+Responsibilities:
+- Check whether the user is already at or above the allowed send frequency for the relevant channel or campaign.
+- Return a structured allow or suppress decision.
+- Prevent duplicate user-visible sends when pipeline replay happens even if internal idempotency is insufficient by itself.
+
+Detailed contract and suppression reason handling should be specified in:
+- [Frequency-cap and suppression modeling details](./abandoned-cart-recovery-data-contracts-and-storage.md)
+
+### 9. Notification Adapter
 
 Thin integration layer over email, push, or SMS providers.
 
@@ -213,6 +281,18 @@ Responsibilities:
 - Handle provider retries and response mapping.
 - Keep provider specifics out of scheduler and state logic.
 
+### 10. Analytics Event Publisher
+
+The system should publish structured analytics events so experiment analysis does not rely on operational logs alone.
+
+Responsibilities:
+- Publish events for policy selection, attempt scheduling, send, suppress, frequency-cap suppression, and failure outcomes.
+- Preserve experiment attribution and policy metadata on every emitted analytics event.
+- Keep analytics emission decoupled from the notification provider and experiment platform implementations.
+
+Detailed event contract and payload fields should be specified in:
+- [Analytics and experiment event details](./abandoned-cart-recovery-data-contracts-and-storage.md)
+
 ## Data Model Boundaries
 
 At the architecture level, the system needs:
@@ -220,7 +300,9 @@ At the architecture level, the system needs:
 - a latest-state record for each cart
 - a persisted record for each scheduled recovery attempt
 - stable idempotency keys for schedule creation and send execution
+- persisted experiment attribution for every scheduled attempt and final send decision
 - enough audit metadata to explain why a send happened or was suppressed
+- a structured analytics event stream for downstream experiment analysis
 
 The detailed logical schema, indexing, and contract design are intentionally split into the companion doc:
 - [Data contracts and storage design](./abandoned-cart-recovery-data-contracts-and-storage.md)
@@ -243,7 +325,15 @@ Ingestion and Classification
                                                                          +--> Topic: recovery.cart-abandoned
                                                                                       |
                                                                                       v
+                                                                            Recovery Policy Service
+                                                                                      |
+                                                                                      v
+                                                                             Experiment Evaluation
+                                                                                      |
+                                                                                      v
                                                                              Recovery Scheduler
+                                                                                      |
+                                                                                      +--> Analytics Event Publisher
                                                                                       |
                                                                                       v
                                                                              Recovery Attempt Store
@@ -256,20 +346,32 @@ Ingestion and Classification
                                                                                       v
                                                                             Eligibility Evaluator
                                                                                       |
-                                                                         eligible ----+---- suppressed
+                                                                             eligible |
+                                                                                      v
+                                                                           Frequency Cap Check
+                                                                                      |
+                                                                         allowed -----+---- suppressed
+                                                                                      |
+                                                                                      +--> Analytics Event Publisher
                                                                                       |
                                                                                       v
                                                                             Notification Adapter
+                                                                                      |
+                                                                                      v
+                                                                            Analytics Pipeline
 ```
 
 1. Cart events are ingested and normalized.
 2. Ingestion routes each event into the correct dedicated topic and processor path.
 3. Mutation and state-event processors update the latest cart recovery state directly.
-4. When abandonment criteria are met, the state-event processor emits a `cart_abandoned` event to the scheduler path.
-5. When an attempt becomes due, the executor performs a final state read.
-6. The eligibility evaluator applies ordered pre-send checks.
-7. If the cart is still eligible, the executor sends through the notification adapter.
-8. If the cart was purchased, emptied, out of stock, or otherwise invalidated, the executor suppresses the attempt.
+4. When an upstream `cart_abandoned` event is accepted, the state-event processor emits it to the scheduler path.
+5. The Recovery Policy Service evaluates the active experiment, resolves a stable variant, and returns the chosen policy.
+6. The scheduler creates attempts, persists experiment attribution with each one, and emits scheduling analytics.
+7. When an attempt becomes due, the executor performs a final state read.
+8. The eligibility evaluator applies ordered pre-send checks.
+9. The frequency-capping module is checked before notification dispatch.
+10. If the cart is still eligible and frequency capping allows it, the executor sends through the notification adapter and emits send analytics.
+11. If the cart was purchased, emptied, out of stock, frequency-capped, or otherwise invalidated, the executor suppresses the attempt and emits suppression analytics.
 
 ## Abandonment and Safety Model
 
@@ -279,6 +381,7 @@ Schedule optimistically, validate conservatively.
 
 Implications:
 - We may schedule attempts as soon as the cart qualifies as abandoned.
+- The abandonment qualification itself is treated as an upstream input, not as local inactivity logic.
 - We never trust scheduled state alone at send time.
 - Purchase completion and cart-empty events override pending recovery attempts.
 - Late mutation events after a cart is already purchased or deleted should be persisted as no-op state transitions rather than reopening eligibility.
@@ -304,6 +407,7 @@ Detailed identity-link event handling and merge semantics should live in:
 - Give critical topics dedicated capacity, tighter lag alerts, and stronger replay guarantees.
 - Avoid a single shared recovery state processor in the middle of the pipeline.
 - Enforce ordering and correctness per `cart_id`, not across the full system.
+- Assume out-of-order arrival and eventual consistency from upstream systems, and design state writes and send suppression to tolerate that.
 - Use idempotency keys for both scheduling and sending.
 - Decouple ingestion from execution with asynchronous queues or scheduled jobs.
 - Prefer latest-state reads for final send decisions rather than relying on stale scheduled payloads.
@@ -331,6 +435,20 @@ The production design should include first-class observability.
 - Correlation ids linking event ingestion, state updates, scheduled attempts, and send outcomes.
 - Auditability for why a send occurred or was suppressed.
 
+### Analytics Emission
+
+Operational telemetry is not enough for experiment analysis.
+
+The system should emit structured analytics events at minimum for:
+- policy selected
+- recovery attempt scheduled
+- recovery attempt suppressed
+- recovery attempt sent
+- recovery attempt failed
+- frequency cap suppressed
+
+Each analytics event should carry experiment attribution and enough business context to support downstream analysis without rejoining against operational logs.
+
 ### Alerts
 
 - Event consumer lag above threshold.
@@ -353,6 +471,31 @@ Rollout should be staged rather than big bang.
    - expand after lag, suppression correctness, and send health are stable
 
 Each rollout stage should have clear success metrics and rollback criteria.
+
+## Policy Extensibility
+
+V1 can start with a simple configured waterfall such as `24h push`, `72h sms`, and `7d email`.
+
+The policy-selection interface should remain extensible enough to support future decision inputs such as:
+- cart value
+- user intent or engagement signals
+- merchant tier
+- ML-driven policy selection using user history and interaction features
+
+This extensibility is a design goal, but building the ML policy-selection capability is not part of the current scope.
+
+## Experimentation Model
+
+Experimentation should be a first-class concern at the policy-selection boundary.
+
+Design decisions:
+- The experimentation platform is evaluated by the Recovery Policy Service, not by the scheduler or notification adapter.
+- Experiment assignment should be stable for the cart or user journey before schedule creation.
+- Scheduler and executor should consume the already-selected policy and persisted experiment metadata rather than re-evaluating experiments mid-flight.
+- Every scheduled attempt and final send or suppression should remain attributable to `experiment_id`, `experiment_name`, `variant_id`, `policy_id`, and `policy_version`.
+- Experiment analysis should run on structured analytics events emitted by the scheduler and executor, not on raw operational logs.
+
+This keeps the core scheduling engine deterministic while preserving growth velocity and experiment traceability.
 
 ## MVP Direction
 
@@ -383,15 +526,7 @@ The estimates below assume one engineer is orchestrating implementation work per
 ## Estimated Long Poles
 
 - identity stitching correctness
-- exact abandonment semantics
+- upstream abandonment-event quality and consistency
 - suppression correctness under race conditions
 - queueing and storage choices for high-scale traffic
 - notification provider integration and channel readiness
-
-## Open Questions
-
-- What exact inactivity rule defines abandonment in v1?
-- Should policy selection eventually depend on cart value, user intent, or merchant tier?
-- What is the source of truth for purchase completion timing?
-- How much ordering can the upstream event stream guarantee?
-- Which channels are in scope for the MVP versus production target?

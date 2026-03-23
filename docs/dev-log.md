@@ -324,6 +324,223 @@ The documentation changes are not committed or pushed yet. The unrelated untrack
 ---
 
 ---
+Timestamp: 2026-03-23 12:14 local
+
+User Request:
+Stress test the RFC against the requirement doc and assess whether the design cleanly supports future growth experiments before deciding whether more high-level changes are needed.
+
+Codex Plan:
+- Compare the current RFC against the functional and non-functional requirements from the case study.
+- Identify any gaps, ambiguities, or risks in requirement coverage without editing the RFC yet.
+- Evaluate where experiments and future integrations should plug into the architecture with minimal friction.
+- Intended files to touch: `docs/dev-log.md` only for this planning entry.
+- Expected validation: confirm the log entry is appended and provide a concise assessment with any recommended high-level changes.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the RFC stress-test assessment has been recorded. No RFC files have been modified in this pass.
+
+Notes:
+The assessment should focus on requirement coverage, operational risks, and experiment-enablement touch points rather than implementation details.
+---
+
+---
+Timestamp: 2026-03-23 12:43 local
+
+User Request:
+Recommend how an external experimentation platform identified by `experiment_id` or name should fit into the architecture, and record this as an architectural decision in the dev log.
+
+Codex Plan:
+- Define the cleanest integration point for experiment evaluation in the current architecture.
+- Clarify what metadata should be persisted so experiment behavior is traceable and analyzable.
+- Record the architectural decision in the append-only dev log before any RFC changes are considered.
+- Intended files to touch: `docs/dev-log.md` only for this planning entry.
+- Expected validation: confirm the log entry is appended and provide a concise recommendation.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the experimentation-platform architecture decision has been recorded. No RFC files have been modified in this pass.
+
+Notes:
+The recommendation should keep experiment evaluation outside the core scheduler while making variant choice and downstream attribution stable and auditable.
+---
+
+---
+Timestamp: 2026-03-23 12:48 local
+
+User Request:
+Assess whether the current design is clear on how analytics data reaches the analytics pipeline for experiment analysis.
+
+Codex Plan:
+- Evaluate whether the current architecture already makes analytics emission sufficiently explicit.
+- Identify the cleanest event-emission points for experiment analysis without modifying the RFC yet.
+- Record the assessment in the append-only dev log as an architectural note.
+- Intended files to touch: `docs/dev-log.md` only for this planning entry.
+- Expected validation: confirm the log entry is appended and provide a concise recommendation.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the analytics-pipeline assessment has been recorded. No RFC files have been modified in this pass.
+
+Notes:
+The recommendation should focus on explicit analytics emission points and the minimum experiment metadata required for analysis.
+---
+
+---
+Timestamp: 2026-03-23 12:49 local
+
+User Request:
+Update the design docs to make analytics emission explicit for experiment analysis and push the latest changes.
+
+Codex Plan:
+- Update the main RFC and companion doc to define analytics emission as an explicit integration for experiment analysis.
+- Describe the minimum analytics event emission points and payload requirements without overloading the high-level design.
+- Stage the documentation updates and append-only dev log, create a commit, and push `main` to `origin`.
+- Intended files to touch: `docs/dev-log.md`, `docs/rfc/abandoned-cart-recovery-system.md`, `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md`, and git metadata for staging, commit, and push operations.
+- Expected validation: inspect the revised RFC docs, verify the staged diff and latest commit, and ensure `git push origin main` succeeds.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the analytics-emission documentation update and push has been recorded. The RFC docs have not been changed yet for this pass.
+
+Notes:
+The analytics design should support experiment analysis without coupling the core recovery logic to any one analytics backend.
+---
+
+---
+Timestamp: 2026-03-23 12:51 local
+
+User Request:
+Update the design docs to make analytics emission explicit for experiment analysis and push the latest changes.
+
+Codex Plan:
+- Record the completed analytics-documentation update in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual doc changes separately.
+- Keep analytics emission explicit while avoiding tight coupling to any one analytics implementation.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to add the analytics pipeline as an external dependency, add an Analytics Event Publisher component, include analytics emission in the end-to-end flow, and define analytics emission requirements for experiment analysis.
+- Updated `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md` to define the analytics event model, minimum emission points, payload fields, and scheduler or executor ownership of analytics emission.
+- Verified the updated docs with `rg -n` and checked the working tree with `git status --short`.
+
+Outcome:
+The design docs now explicitly define how analytics data reaches the analytics pipeline for experiment analysis. Analytics emission is treated as a structured event stream emitted by the scheduler and executor rather than as an implicit side effect of logs.
+
+Notes:
+The documentation changes are ready to commit and push. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 12:47 local
+
+User Request:
+Update the design docs to make experimentation a first-class concern in the architecture.
+
+Codex Plan:
+- Record the completed architectural-doc update in a new append-only log entry.
+- Preserve the earlier planning and decision entries and describe the actual doc changes separately.
+- Make experiment evaluation, assignment stability, and attribution explicit across the main RFC and companion doc.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to add the experimentation platform as an external dependency, route experiment evaluation through the Recovery Policy Service, persist experiment attribution on scheduled attempts, and add an explicit experimentation model section.
+- Updated `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md` to define the experimentation integration contract, required evaluation outputs, auditability requirements, and denormalized experiment fields on attempt records.
+- Verified the updated sections with `rg -n` and checked the working tree with `git status --short`.
+
+Outcome:
+Experimentation is now a first-class architectural concern in the docs. The design explicitly places experiment evaluation at the policy-selection boundary, requires stable assignment before schedule creation, and requires `experiment_id`, `experiment_name`, `variant_id`, `policy_id`, and `policy_version` to remain attached to downstream attempt and send decisions.
+
+Notes:
+The documentation changes are not committed or pushed yet. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 12:44 local
+
+User Request:
+Recommend how an external experimentation platform identified by `experiment_id` or name should fit into the architecture, and record this as an architectural decision in the dev log.
+
+Codex Plan:
+- Record the architectural recommendation explicitly in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual decision separately.
+- Keep the decision high level so it can later be reflected in the RFC if we agree it belongs there.
+
+Actions Taken:
+- Determined that experiment evaluation should sit at the Recovery Policy Service boundary rather than inside the scheduler or notification adapter.
+- Defined the minimum metadata that should be persisted on recovery attempts and sends: `experiment_id`, `experiment_name`, `variant_id`, `policy_id`, and `policy_version`.
+- Defined that experiment assignment should be stable for a cart or user journey and should happen before schedule creation so downstream sends remain traceable.
+
+Outcome:
+Architectural decision: use the experimentation platform through the Recovery Policy Service. That service should evaluate the active experiment using `experiment_id` or name, choose a stable variant, and return the resulting policy, cadence, channel sequence, template family, and any experiment-scoped cap or suppression parameters. The scheduler and executor should consume the chosen policy and persist experiment metadata for later analytics rather than calling the experimentation platform directly.
+
+Notes:
+This keeps experimentation concerns out of the core scheduling engine while preserving growth velocity. A later RFC update should make this boundary explicit and add experiment metadata to attempt and decision records.
+---
+
+---
+Timestamp: 2026-03-23 12:08 local
+
+User Request:
+Resolve the remaining RFC open questions, move assumptions and dependencies up front, and add a frequency-capping integration point in the recovery executor.
+
+Codex Plan:
+- Update the main RFC to replace open questions with explicit design decisions and assumptions provided by the user.
+- Add clear assumptions and external dependencies near the top of the main RFC.
+- Update the executor design to include a frequency-capping integration before send and align the companion doc with that contract.
+- Intended files to touch: `docs/dev-log.md`, `docs/rfc/abandoned-cart-recovery-system.md`, and `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md`.
+- Expected validation: inspect the revised RFC docs and confirm the open-questions section is removed or fully resolved.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the RFC assumptions-and-decisions update has been recorded. The RFC docs have not been changed yet for this pass.
+
+Notes:
+The resulting design doc should end without unresolved open questions and should make future extensibility, upstream assumptions, and external integration points explicit.
+---
+
+---
+Timestamp: 2026-03-23 12:10 local
+
+User Request:
+Resolve the remaining RFC open questions, move assumptions and dependencies up front, and add a frequency-capping integration point in the recovery executor.
+
+Codex Plan:
+- Record the completed RFC decisions in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual document changes separately.
+- Ensure the main RFC ends without unresolved open questions and the companion doc carries concrete defaults for lower-level design choices.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to add explicit assumptions and external dependencies near the top, resolve the open design questions, add policy extensibility guidance, and include a frequency-capping integration in the executor flow.
+- Updated `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md` to align with upstream `cart_abandoned` ownership, add frequency-capping contract detail, rename topology wording, and replace the open-questions section with resolved defaults.
+- Verified the revised docs with `rg -n` and checked the working tree with `git status --short`.
+
+Outcome:
+The design docs now explicitly assume that abandonment is determined upstream, define purchase completion as the cart-to-order source-of-truth event, assume out-of-order upstream delivery, keep push/email/SMS in scope, and preserve future extensibility for rule-based or ML-based policy selection. Frequency capping is now called out as a required executor integration before notification send. No unresolved open-question section remains in the RFC docs.
+
+Notes:
+The documentation changes are not committed or pushed yet. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
 Timestamp: 2026-03-23 11:48 local
 
 User Request:
