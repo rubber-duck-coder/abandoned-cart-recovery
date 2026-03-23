@@ -178,6 +178,30 @@ The unrelated untracked file `excalidraw.log` should remain excluded.
 ---
 
 ---
+Timestamp: 2026-03-23 13:57 local
+
+User Request:
+Keep going with implementation after `M2`.
+
+Codex Plan:
+- Record the completed milestone commit and push in a separate append-only log entry.
+- Preserve the earlier planning entry and capture the exact commit and push outcome here.
+- Keep the repository clean again with one follow-up log-only commit after this entry.
+
+Actions Taken:
+- Staged the scaffold, storage, and log files with `git add`.
+- Created commit `b31a9bc` with message `Scaffold service and add storage layer`.
+- Verified the commit with `git log -1 --stat --oneline`.
+- Pushed `main` to `origin` with `git push origin main`.
+
+Outcome:
+The `M1` and `M2` milestone work is now committed and pushed to `origin/main`. The pushed commit contains the monorepo scaffold, Docker Compose runtime, minimal Kotlin service, Flyway migrations, JDBC repositories, and repository integration tests.
+
+Notes:
+This follow-up log entry still needs to be committed and pushed so the append-only record reflects the successful milestone push inside repository history. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
 Timestamp: 2026-03-23 13:29 local
 
 User Request:
