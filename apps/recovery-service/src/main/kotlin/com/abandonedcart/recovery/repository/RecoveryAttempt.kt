@@ -22,7 +22,8 @@ data class RecoveryAttempt(
     val sendIdempotencyKey: String,
     val frequencyCapResult: String?,
     val providerResultJson: String?,
+    val leaseUntil: OffsetDateTime? = null,
+    val dispatchedAt: OffsetDateTime? = null,
     val createdAt: OffsetDateTime? = null,
     val updatedAt: OffsetDateTime? = null,
 )
-

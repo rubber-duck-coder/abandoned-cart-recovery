@@ -1754,3 +1754,125 @@ The M6 scheduling checkpoint is published on `origin/main` in commit `8736660`. 
 Notes:
 This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
 ---
+
+---
+Timestamp: 2026-03-23 14:46 local
+
+User Request:
+Clarify how scheduled recovery attempts are expected to be picked up for future delivery and whether the design relies on polling the database for due work.
+
+Codex Plan:
+- Review the current scheduler implementation and execution plan before answering.
+- Distinguish clearly between what the code does today and the intended pickup model for the next milestone.
+- Record the architectural clarification in the append-only log because it affects executor design.
+
+Actions Taken:
+- Read `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/scheduler/RecoveryScheduler.kt`.
+- Read `docs/plans/001-mvp-prototype-implementation.md`.
+- Appended this clarification entry to `docs/dev-log.md`.
+
+Outcome:
+The current code and plan have been reviewed for the scheduler-to-executor handoff question. No implementation changes were made in this pass.
+
+Notes:
+The current code persists scheduled attempts in Postgres but does not yet implement the due-attempt pickup path. That boundary will be finalized in M7.
+---
+
+---
+Timestamp: 2026-03-23 14:48 local
+
+User Request:
+Evaluate whether the MVP should add Kafka for due-attempt execution handoff instead of relying only on SQL polling, and clarify the crash semantics of the SQL approach.
+
+Codex Plan:
+- Compare the pure SQL polling approach with a Kafka-backed execution handoff using the current architecture.
+- Make the failure modes explicit, especially around app crashes after reading or claiming due work.
+- Record the design recommendation because it affects how M7 should be implemented.
+
+Actions Taken:
+- Read the latest scheduler and execution-plan context already loaded in this pass.
+- Appended this architectural decision note to `docs/dev-log.md`.
+
+Outcome:
+The design tradeoff and failure-handling question is recorded for M7 planning. No implementation changes were made in this pass.
+
+Notes:
+The likely outcome is a hybrid design: Postgres remains the schedule source of truth, while a due-attempt dispatcher claims rows and publishes executable work onto Kafka for scalable processing.
+---
+
+---
+Timestamp: 2026-03-23 14:49 local
+
+User Request:
+Update the plan to reflect the hybrid Postgres-plus-Kafka due-attempt handoff and continue implementation when it makes sense.
+
+Codex Plan:
+- Revise the execution plan so M7 explicitly uses a due-attempt dispatcher that claims rows in Postgres and publishes executable work to Kafka.
+- Inspect the current attempt schema and repository code to determine the smallest safe dispatcher slice.
+- Implement the first M7 checkpoint only after the plan reflects the updated design.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Read `docs/plans/001-mvp-prototype-implementation.md`.
+- Read the current repository and migration file list under `apps/recovery-service/src/main/resources` and `.../repository`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the M7 design update and first execution slice is recorded. No code or plan text has been changed yet in this pass.
+
+Notes:
+The next concrete change should make the dispatcher boundary explicit: Postgres holds schedule truth, and Kafka carries claimed due work for scalable execution.
+---
+
+---
+Timestamp: 2026-03-23 14:53 local
+
+User Request:
+Update the plan to reflect the hybrid Postgres-plus-Kafka due-attempt handoff and continue implementation when it makes sense.
+
+Codex Plan:
+- Update the execution plan so M7 explicitly uses a DB-claiming dispatcher plus Kafka handoff.
+- Add the minimum schema and repository changes needed for safe claim semantics.
+- Implement and verify a due-attempt dispatcher that publishes claimed work to `recovery.recovery-attempts` without duplicate dispatch on rerun.
+
+Actions Taken:
+- Updated `docs/plans/001-mvp-prototype-implementation.md` to make the M7 dispatcher pattern explicit.
+- Added `apps/recovery-service/src/main/resources/db/migration/V3__add_recovery_attempt_dispatch_lease.sql`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/RecoveryAttempt.kt`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/RecoveryAttemptRepository.kt` with due-claim and mark-dispatched methods.
+- Added `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/dispatcher/DueAttemptDispatcher.kt`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppModule.kt` to provide the dispatcher.
+- Updated `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/repository/RepositoryIntegrationTest.kt`.
+- Added `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/dispatcher/DueAttemptDispatcherIntegrationTest.kt`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+
+Outcome:
+The first M7 dispatcher slice is implemented locally and the build passed. Scheduled attempts can now be claimed with lease semantics from Postgres and published once onto `recovery.recovery-attempts`, with repository and Kafka integration coverage for the non-duplicate dispatch path.
+
+Notes:
+This checkpoint still stops before executor consumption, eligibility evaluation, frequency-cap checks, and send behavior. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 14:53 local
+
+User Request:
+Commit and push the validated dispatcher checkpoint when it makes sense.
+
+Codex Plan:
+- Stage the plan, schema, repository, dispatcher, test, and dev-log changes for this checkpoint.
+- Exclude the unrelated untracked file `excalidraw.log`.
+- Create a commit for the dispatcher slice and push `main` to `origin`.
+
+Actions Taken:
+- Inspected the current working tree with `git status --short`.
+- Reviewed the pending diff summary with `git diff --stat`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the dispatcher checkpoint publish is recorded. The changes remain local at this point.
+
+Notes:
+This checkpoint is focused on safe due-attempt handoff, not execution outcomes.
+---

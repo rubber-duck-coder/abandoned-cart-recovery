@@ -83,6 +83,7 @@ The prototype should support these state transitions:
 - active cart mutations update `cart_recovery_state`
 - purchase or delete transitions make later mutation writes a no-op
 - abandoned-cart event triggers attempt creation
+- due-attempt dispatcher claims ready rows in Postgres and publishes executable work to Kafka
 - due attempt execution either sends, suppresses, or fails with a recorded reason
 
 The prototype should support this initial recovery policy example:
@@ -383,7 +384,6 @@ Expected work:
 - load current cart state
 - resolve policy and experiment assignment
 - create one or more `recovery_attempt` rows
-- publish due-attempt work or make attempts discoverable to executor
 - emit `attempt_scheduled` analytics
 
 Likely files:
@@ -419,20 +419,26 @@ Commit checkpoint:
 
 Objective:
 
-- Execute due attempts safely and record final outcome.
+- Dispatch and execute due attempts safely and record final outcome.
 
 Expected work:
 
-- implement due-attempt execution path
+- implement a `DueAttemptDispatcher`
+- poll Postgres for rows with `status = 'SCHEDULED'` and `scheduled_at <= now()`
+- claim due rows atomically with lease semantics before execution handoff
+- publish claimed due work to `recovery.recovery-attempts`
+- implement executor consumption from `recovery.recovery-attempts`
 - reload latest cart state before send
 - add `EligibilityEvaluator`
 - integrate mocked frequency-cap client before send
 - integrate mock notification adapter
+- handle stale leased rows so crashed dispatch or execution work can be retried
 - update attempt status to `sent`, `suppressed`, or `failed`
 - store suppression and failure reasons
 
 Likely files:
 
+- `src/main/kotlin/.../dispatcher/...`
 - `src/main/kotlin/.../executor/...`
 - `src/main/kotlin/.../eligibility/...`
 - `src/main/kotlin/.../frequencycap/...`
@@ -441,6 +447,8 @@ Likely files:
 
 Definition of done:
 
+- due attempts are claimed once for a given lease window before Kafka handoff
+- claimed work is published to `recovery.recovery-attempts`
 - purchased or deleted carts are suppressed
 - frequency-cap suppressions are recorded
 - eligible attempts call mock notification send exactly once
@@ -448,6 +456,10 @@ Definition of done:
 
 Required automated test scenarios:
 
+- due dispatcher claims only ready scheduled attempts
+- due dispatcher does not double-claim the same attempt
+- due dispatcher publishes claimed work to Kafka
+- expired leases can be recovered for retry
 - happy-path send succeeds
 - purchased cart is suppressed before send
 - deleted cart is suppressed before send

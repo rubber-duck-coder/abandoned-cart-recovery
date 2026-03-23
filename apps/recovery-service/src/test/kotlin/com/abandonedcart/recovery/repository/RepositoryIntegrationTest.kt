@@ -3,6 +3,7 @@ package com.abandonedcart.recovery.repository
 import com.abandonedcart.recovery.db.FlywayMigrator
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import java.time.Duration
 import java.time.OffsetDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -71,6 +72,23 @@ class RepositoryIntegrationTest {
         assertEquals(1, attempts.size)
         assertEquals("SENT", attempts.first().status)
         assertTrue(attempts.first().providerResultJson?.contains("mock") == true)
+    }
+
+    @Test
+    fun `claim due attempts marks rows dispatching and avoids double claim`() {
+        val repository = RecoveryAttemptRepository(dataSource)
+        val dueAttempt = sampleAttempt(scheduledAt = OffsetDateTime.now().minusMinutes(1))
+
+        assertTrue(repository.schedule(dueAttempt))
+
+        val claimed = repository.claimDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+        val claimedAgain = repository.claimDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+        val attempts = repository.findByCartId(dueAttempt.cartId)
+
+        assertEquals(1, claimed.size)
+        assertEquals(0, claimedAgain.size)
+        assertEquals("DISPATCHING", attempts.first().status)
+        assertNotNull(attempts.first().leaseUntil)
     }
 
     @BeforeEach

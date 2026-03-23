@@ -5,6 +5,7 @@ import com.abandonedcart.recovery.analytics.KafkaAnalyticsPublisher
 import com.abandonedcart.recovery.contract.JsonCodec
 import com.abandonedcart.recovery.db.DataSourceFactory
 import com.abandonedcart.recovery.db.FlywayMigrator
+import com.abandonedcart.recovery.dispatcher.DueAttemptDispatcher
 import com.abandonedcart.recovery.experiment.ExperimentClient
 import com.abandonedcart.recovery.experiment.MockExperimentClient
 import com.abandonedcart.recovery.kafka.KafkaJsonProducer
@@ -92,6 +93,18 @@ class AppModule(
         recoveryAttemptRepository,
         recoveryPolicyService,
         analyticsPublisher,
+    )
+
+    @Provides
+    @Singleton
+    fun provideDueAttemptDispatcher(
+        appConfig: AppConfig,
+        recoveryAttemptRepository: RecoveryAttemptRepository,
+        kafkaJsonProducer: KafkaJsonProducer,
+    ): DueAttemptDispatcher = DueAttemptDispatcher(
+        recoveryAttemptRepository,
+        kafkaJsonProducer,
+        appConfig.recoveryAttemptsTopic,
     )
 
     @Provides
