@@ -23,6 +23,12 @@ Build the recovery service:
 ./gradlew build
 ```
 
+The build also prepares the local distribution zip used by the Docker image:
+
+```bash
+ls apps/recovery-service/build/distributions
+```
+
 If your environment restricts writes to the default Gradle user home, run:
 
 ```bash
@@ -65,6 +71,12 @@ Run the Kafka contract and wiring tests against the local Compose Kafka broker:
 
 ```bash
 GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Contract*'
+```
+
+Run the processor integration test for Kafka-to-Postgres state ingestion:
+
+```bash
+GRADLE_USER_HOME=.gradle-home ./gradlew test --tests 'com.abandonedcart.recovery.processor.KafkaStateIngestionIntegrationTest'
 ```
 
 Useful endpoints:

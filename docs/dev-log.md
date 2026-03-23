@@ -202,6 +202,56 @@ This follow-up log entry still needs to be committed and pushed so the append-on
 ---
 
 ---
+Timestamp: 2026-03-23 14:08 local
+
+User Request:
+Continue implementation after `M3`.
+
+Codex Plan:
+- Start `M4` with the thinnest happy path from a cart event on Kafka to a persisted `cart_recovery_state` row.
+- Add simple processors for cart mutation and cart state events, with minimal routing based on `mutationType` and `stateType`.
+- Keep verification log-based and repository-backed first, then add focused tests for consume-to-write behavior.
+- Record the milestone outcome in a follow-up append-only log entry once the path passes.
+- Intended files to touch: `docs/dev-log.md` and `apps/recovery-service/**`.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected the current service files with `rg --files`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for `M4` state-ingestion work has been recorded. The processor and state-write changes have not been applied yet for this pass.
+
+Notes:
+This pass should stay minimal: one consumer loop, simple event routing, and direct repository writes are enough. Richer transition semantics can be layered in after the basic path is proven.
+---
+
+---
+Timestamp: 2026-03-23 14:17 local
+
+User Request:
+Continue implementation after `M3`.
+
+Codex Plan:
+- Revise the current `M4` validation plan to fix the Docker image build path after the in-container Gradle build failed on external plugin download.
+- Switch the service image to package the already-built local install distribution instead of recompiling inside Docker.
+- Re-run the service image build and runtime verification after the packaging change, then record the outcome in a follow-up log entry.
+- Intended files to touch: `docs/dev-log.md`, `apps/recovery-service/Dockerfile`, `.dockerignore`, and local workflow docs if needed.
+
+Actions Taken:
+- Observed `docker compose up --build -d recovery-service` fail in `apps/recovery-service/Dockerfile` while running `gradle :apps:recovery-service:installDist --no-daemon`.
+- Identified the failure as an external TLS/plugin download issue during the in-container Gradle build, not an application compile or test failure.
+- Appended this revised-planning entry to `docs/dev-log.md`.
+
+Outcome:
+The `M4` plan has been revised to change the Docker packaging path before continuing runtime verification. No Dockerfile or workflow files have been updated yet for this pass.
+
+Notes:
+This is a packaging correction, not a code-path rollback. The host-side build and the `M4` ingestion test already passed; only the container image build path needs to be made more deterministic.
+---
+
+---
 Timestamp: 2026-03-23 13:57 local
 
 User Request:
@@ -1341,4 +1391,79 @@ The RFC now makes a concrete horizontal-scaling decision: separate topics and de
 
 Notes:
 The documentation changes are not committed or pushed yet. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 14:27 local
+
+User Request:
+Continue execution by completing M4 verification and making the local prototype fully verifiable through Docker Compose, host curl checks, and Gradle build paths.
+
+Codex Plan:
+- Verify the current Docker packaging fix by rebuilding and starting `recovery-service` through `docker compose`.
+- Check runtime health and logs to confirm the M4 Kafka-to-state ingestion path still boots correctly in the containerized flow.
+- If Docker packaging still fails, adjust only the minimum files needed and keep the dev log append-only.
+- Once verification is stable, record the outcome and prepare the M4 changes for commit and push.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected the current working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the M4 verification and Docker runtime packaging pass has been recorded. No additional code or config changes have been made yet in this pass.
+
+Notes:
+The current uncommitted work includes M4 processor changes plus a Dockerfile packaging adjustment intended to avoid in-container Gradle downloads. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
+Timestamp: 2026-03-23 14:28 local
+
+User Request:
+Continue execution by completing M4 verification and making the local prototype fully verifiable through Docker Compose, host curl checks, and Gradle build paths.
+
+Codex Plan:
+- Rebuild the service image through `docker compose` and confirm the local packaging path works without in-container dependency downloads.
+- Verify container startup logs, in-container health, host health, and host metrics exposure.
+- Add a small README verification step for the M4 processor integration test and prepare the milestone changes for commit and push.
+
+Actions Taken:
+- Rebuilt and started `recovery-service` with `docker compose up --build -d recovery-service`.
+- Inspected container startup logs with `docker compose logs recovery-service --tail=120`.
+- Verified in-container health with `docker compose exec -T recovery-service /bin/sh -lc 'wget -qO- http://127.0.0.1:8080/health && echo'`.
+- Verified host health with `curl -sf http://localhost:8080/health`.
+- Verified host metrics with `curl -sf http://localhost:9464/metrics`.
+- Updated `apps/recovery-service/Dockerfile` to restore execute permissions on `/app/bin/recovery-service`.
+- Updated `README.md` to add the `KafkaStateIngestionIntegrationTest` verification command.
+
+Outcome:
+The Docker packaging path now works end to end. The container starts successfully, Flyway migrations run, Kafka topics are subscribed, host health returns `ok`, and Prometheus metrics are reachable from the host. The remaining M4 changes are ready to be reviewed for commit and push.
+
+Notes:
+The earlier container startup failure was caused by the unpacked Gradle distribution launcher losing its execute bit inside the image. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 14:28 local
+
+User Request:
+Continue execution by publishing the verified M4 state-ingestion milestone.
+
+Codex Plan:
+- Review the final M4 working tree and stage only the recovery-service, README, Docker, and dev-log changes needed for this milestone.
+- Exclude the unrelated untracked file `excalidraw.log`.
+- Create a commit for M4 and push `main` to `origin`.
+
+Actions Taken:
+- Inspected the current working tree with `git status --short`.
+- Reviewed the pending diff summary with `git diff --stat`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the M4 commit-and-push step has been recorded. The changes are staged neither for commit nor push yet.
+
+Notes:
+This milestone includes Kafka-to-Postgres state ingestion plus the Docker packaging fix required for host-verifiable runtime checks.
 ---

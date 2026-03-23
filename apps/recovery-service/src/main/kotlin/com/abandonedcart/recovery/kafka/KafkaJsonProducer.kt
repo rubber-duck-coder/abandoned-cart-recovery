@@ -15,9 +15,12 @@ class KafkaJsonProducer(
         producer.send(ProducerRecord(topic, key, jsonCodec.toJson(value))).get()
     }
 
+    fun publishRawJson(topic: String, key: String, json: String) {
+        producer.send(ProducerRecord(topic, key, json)).get()
+    }
+
     override fun close() {
         producer.flush()
         producer.close()
     }
 }
-

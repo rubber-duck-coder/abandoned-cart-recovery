@@ -3,5 +3,7 @@
 .gradle-home
 build
 **/build
+!apps/recovery-service/build/
+!apps/recovery-service/build/distributions/
+!apps/recovery-service/build/distributions/recovery-service-0.1.0-SNAPSHOT.zip
 excalidraw.log
-

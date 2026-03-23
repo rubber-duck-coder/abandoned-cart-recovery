@@ -6,6 +6,10 @@ import com.abandonedcart.recovery.db.FlywayMigrator
 import com.abandonedcart.recovery.kafka.KafkaJsonProducer
 import com.abandonedcart.recovery.kafka.KafkaLoggingConsumer
 import com.abandonedcart.recovery.kafka.KafkaTopicBootstrapper
+import com.abandonedcart.recovery.processor.CartMutationProcessor
+import com.abandonedcart.recovery.processor.CartStateEventProcessor
+import com.abandonedcart.recovery.repository.CartRecoveryStateRepository
+import com.abandonedcart.recovery.repository.RecoveryAttemptRepository
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import com.google.inject.Singleton
@@ -36,11 +40,43 @@ class AppModule(
 
     @Provides
     @Singleton
+    fun provideCartRecoveryStateRepository(dataSource: DataSource): CartRecoveryStateRepository =
+        CartRecoveryStateRepository(dataSource)
+
+    @Provides
+    @Singleton
+    fun provideRecoveryAttemptRepository(dataSource: DataSource): RecoveryAttemptRepository =
+        RecoveryAttemptRepository(dataSource)
+
+    @Provides
+    @Singleton
+    fun provideCartMutationProcessor(repository: CartRecoveryStateRepository): CartMutationProcessor =
+        CartMutationProcessor(repository)
+
+    @Provides
+    @Singleton
+    fun provideCartStateEventProcessor(repository: CartRecoveryStateRepository): CartStateEventProcessor =
+        CartStateEventProcessor(repository)
+
+    @Provides
+    @Singleton
     fun provideKafkaTopicBootstrapper(appConfig: AppConfig): KafkaTopicBootstrapper = KafkaTopicBootstrapper(appConfig)
 
     @Provides
     @Singleton
-    fun provideKafkaLoggingConsumer(appConfig: AppConfig): KafkaLoggingConsumer = KafkaLoggingConsumer(appConfig)
+    fun provideKafkaLoggingConsumer(
+        appConfig: AppConfig,
+        jsonCodec: JsonCodec,
+        kafkaJsonProducer: KafkaJsonProducer,
+        cartMutationProcessor: CartMutationProcessor,
+        cartStateEventProcessor: CartStateEventProcessor,
+    ): KafkaLoggingConsumer = KafkaLoggingConsumer(
+        appConfig,
+        jsonCodec,
+        kafkaJsonProducer,
+        cartMutationProcessor,
+        cartStateEventProcessor,
+    )
 
     @Provides
     @Singleton
