@@ -424,6 +424,83 @@ The analytics design should support experiment analysis without coupling the cor
 ---
 
 ---
+Timestamp: 2026-03-23 13:00 local
+
+User Request:
+Mark the RFC as approved, add the case study PDF under `docs/requirements`, create a separate tech-choices RFC, and flesh out implementation details for data models, contracts, schema, storage, partitioning, sharding, and queue choices.
+
+Codex Plan:
+- Mark the main architecture RFC as approved and preserve implementation-oriented docs as separate lower-level artifacts.
+- Add the source case study PDF into `docs/requirements` so the requirement source is versioned in the repo.
+- Create a new RFC under `docs/rfc` for technology choices and rationale using pragmatic decisions aligned with the engineer's strengths.
+- Expand the implementation-oriented RFC doc with concrete decisions for message queue, database choice, data model shape, schema direction, partitioning, sharding posture, and contract format.
+- Intended files to touch: `docs/dev-log.md`, `docs/rfc/abandoned-cart-recovery-system.md`, `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md`, a new tech-choices RFC under `docs/rfc`, and a copied PDF under `docs/requirements`.
+- Expected validation: verify the new and updated docs, confirm the PDF is present under `docs/requirements`, and ensure only intended documentation files changed.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected the current `docs/` file layout.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the implementation-design phase has been recorded. The docs and requirements file have not been updated yet for this phase.
+
+Notes:
+The goal for this step is to turn the approved system vision into concrete implementation decisions without starting code yet.
+---
+
+---
+Timestamp: 2026-03-23 13:10 local
+
+User Request:
+Mark the RFC as approved, add the case study PDF under `docs/requirements`, create a separate tech-choices RFC, flesh out implementation details, and add researched benchmark guidance to understand the scale envelope of the design.
+
+Codex Plan:
+- Record the completed implementation-design and benchmark-research updates in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual documentation changes separately.
+- Keep the work documentation-only and avoid starting implementation code.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to mark the main RFC as `Approved` and link to the tech-choices RFC.
+- Added `docs/rfc/abandoned-cart-recovery-technology-choices.md` with concrete choices for Kotlin, Guice, Kafka, Postgres, Protobuf, REST/JSON boundaries, benchmark methodology, indicative public reference points, and rationale.
+- Expanded `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md` with concrete Kafka topic decisions, Postgres table designs, example DDL, partitioning and sharding posture, and contract skeletons for core messages and analytics events.
+- Copied `/Users/ninadsindu/Downloads/Case study - Staff Engineer for Growth.pdf` into `docs/requirements/Case study - Staff Engineer for Growth.pdf`.
+- Used web research to gather current reference benchmarks and official benchmark tools for Kafka and PostgreSQL sizing.
+
+Outcome:
+The repo now contains an approved high-level RFC, a dedicated technology-choices RFC, a more concrete implementation-detail RFC with clear schemas and contract direction, and a versioned copy of the original case study requirements. The benchmark section now explains which tests to run, what metrics matter, and where the likely bottlenecks will be for this design.
+
+Notes:
+The benchmark figures are explicitly documented as reference points, not guarantees. The next step should be a numbered execution plan in `docs/plans` based on these approved architecture and implementation decisions. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 13:02 local
+
+User Request:
+Mark the RFC as approved, add the case study PDF under `docs/requirements`, create a separate tech-choices RFC, and flesh out implementation details for data models, contracts, schema, storage, partitioning, sharding, and queue choices.
+
+Codex Plan:
+- Record the completed implementation-design documentation updates in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual document changes separately.
+- Keep the main RFC approved while moving concrete technology and schema choices into dedicated lower-level RFC docs.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to change the RFC status to `Approved` and link to the new technology-choices RFC.
+- Added `docs/rfc/abandoned-cart-recovery-technology-choices.md` with pragmatic decisions for Kotlin, Guice, Kafka, Postgres, Protobuf, REST/JSON boundaries, and the rationale for not choosing Cassandra or gRPC by default.
+- Expanded `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md` with concrete implementation decisions for Kafka topics, Protobuf contracts, Postgres table shapes, indexing, uniqueness, partitioning, and sharding posture.
+- Copied `/Users/ninadsindu/Downloads/Case study - Staff Engineer for Growth.pdf` into `docs/requirements/Case study - Staff Engineer for Growth.pdf`.
+- Verified the updated docs and requirements file with `sed -n`, `find docs/requirements`, and `git status --short`.
+
+Outcome:
+The architecture RFC is now approved, the source requirement PDF is versioned inside the repo, a dedicated technology-choices RFC exists, and the implementation companion doc now contains concrete decisions for queue choice, database choice, partitioning, sharding posture, schemas, and contract format. No code has been written.
+
+Notes:
+The next logical step is to create the first numbered execution plan in `docs/plans` based on these approved architecture and implementation decisions. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
 Timestamp: 2026-03-23 12:51 local
 
 User Request:

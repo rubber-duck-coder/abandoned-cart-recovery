@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft
+Approved
 
 ## Summary
 
@@ -13,6 +13,7 @@ The system should be designed for production scale first. A smaller MVP prototyp
 ## Related Documents
 
 - [Abandoned Cart Recovery: Data Contracts and Storage Design](./abandoned-cart-recovery-data-contracts-and-storage.md)
+- [Abandoned Cart Recovery: Technology Choices](./abandoned-cart-recovery-technology-choices.md)
 
 ## Assumptions
 
