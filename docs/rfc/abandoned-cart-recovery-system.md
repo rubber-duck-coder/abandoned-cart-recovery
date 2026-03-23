@@ -42,7 +42,7 @@ The system should be designed for production scale first. A smaller MVP prototyp
 
 ### Functional
 
-- Ingest cart lifecycle events such as add, remove, checkout start, purchase complete, cart emptied, and identity linked.
+- Ingest cart lifecycle events such as add, remove, checkout start, purchase complete, cart emptied, `cart_abandoned`, and identity linked.
 - Maintain the latest recovery-relevant cart state.
 - Detect when a cart becomes eligible for recovery scheduling.
 - Create a recovery sequence from a policy rather than from hardcoded timing logic.
@@ -62,56 +62,60 @@ The system should be designed for production scale first. A smaller MVP prototyp
 ## Proposed Architecture
 
 ```text
-+-----------------------+
-| Commerce Event Stream |
-+-----------------------+
-            |
-            v
++-------------------------------+
+| Topic: commerce.cart-events   |
++-------------------------------+
+                |
+                v
 +------------------------------------+
 | Event Ingestion and Classification |
 +------------------------------------+
-      |                         |
-      v                         v
-+-------------------+   +---------------------+
-| Mutation Lane     |   | Critical Event Lane |
-| item add / remove |   | purchase / empty    |
-+-------------------+   +---------------------+
-      \                         /
-       \                       /
-        v                     v
-      +--------------------------+
-      | Recovery State Processor |
-      +--------------------------+
-            |              |
-            v              v
-+------------------+   +--------------------+
-| State Store      |   | Recovery Scheduler |
-+------------------+   +--------------------+
-                               |
-                               v
-                    +-----------------------+
-                    | Recovery Attempt Store|
-                    +-----------------------+
-                               |
-                               v
-                    +-----------------------+
-                    | Recovery Executor     |
-                    +-----------------------+
-                               |
-                               v
-                    +-----------------------+
-                    | Eligibility Evaluator |
-                    +-----------------------+
-                               |
-                               v
-                    +-----------------------+
-                    | Notification Adapter  |
-                    +-----------------------+
-                               |
-                               v
-                    +-----------------------+
-                    | Email / Push / SMS    |
-                    +-----------------------+
+        |                      |
+        v                      v
++---------------------------+  +------------------------------+
+| Topic: recovery.cart-     |  | Topic: recovery.cart-       |
+| mutations                 |  | state-events                |
++---------------------------+  +------------------------------+
+        |                      |
+        v                      v
++---------------------------+  +------------------------------+
+| Mutation Processor        |  | State Event Processor       |
++---------------------------+  +------------------------------+
+          |                    |
+          v                    v
++-------------------+   +-------------------------------+
+| State Store       |   | Topic: recovery.cart-abandoned|
++-------------------+   +-------------------------------+
+                                    |
+                                    v
+                          +--------------------+
+                          | Recovery Scheduler |
+                          +--------------------+
+                                    |
+                                    v
+                          +-----------------------+
+                          | Recovery Attempt Store|
+                          +-----------------------+
+                                    |
+                                    v
+                          +-----------------------+
+                          | Recovery Executor     |
+                          +-----------------------+
+                                    |
+                                    v
+                          +-----------------------+
+                          | Eligibility Evaluator |
+                          +-----------------------+
+                                    |
+                                    v
+                          +-----------------------+
+                          | Notification Adapter  |
+                          +-----------------------+
+                                    |
+                                    v
+                          +-----------------------+
+                          | Email / Push / SMS    |
+                          +-----------------------+
 ```
 
 ### 1. Event Ingestion Layer
@@ -120,31 +124,37 @@ Consumes cart and identity events from the commerce event stream.
 
 Responsibilities:
 - Validate and normalize inbound events.
-- Classify events into high-volume mutation traffic and critical eligibility-impacting events.
+- Route events into explicit downstream topics with dedicated processors.
 - Attach idempotency keys and event timestamps.
 - Forward normalized events to recovery processing.
 
-### 2. Event Processing Lanes
+### 2. Separate Topics and Processors
 
-The system should not treat all cart events with equal urgency.
+The system should not treat all cart events with equal urgency, and this is an explicit design choice rather than an abstract future option.
 
 Approach:
-- High-volume mutation events such as `item_added` and `item_removed` can be processed through a bulk lane optimized for throughput.
-- Critical events such as `purchase_completed`, `cart_emptied`, identity-link events, and other state-invalidating signals should flow through a protected lane with dedicated capacity and stricter lag monitoring.
+- High-volume mutation events such as `item_added` and `item_removed` should be routed to a dedicated mutations topic with its own processor fleet.
+- Critical events such as `purchase_completed`, `cart_emptied`, `cart_abandoned`, identity-link events, and other state-invalidating signals should be routed to a separate state-events topic with its own processor fleet.
+- Scheduler-triggering `cart_abandoned` events should flow through a dedicated intermediate topic so scheduling can scale independently from state mutation handling.
 - Scheduler and executor decisions should rely on current state plus critical invalidation signals, not on draining every mutation event in perfect order.
 - This reduces head-of-line blocking risk during traffic spikes while preserving send-suppression correctness.
 
-Implementation detail such as whether this is realized with separate queues, separate topics, or another prioritized transport model should live in the companion doc:
-- [Processing lanes, contracts, and storage details](./abandoned-cart-recovery-data-contracts-and-storage.md)
+Explicit topic names and processor responsibilities are captured in the companion doc:
+- [Topic map, contracts, and storage details](./abandoned-cart-recovery-data-contracts-and-storage.md)
 
-### 3. Recovery State Processor
+### 3. Direct Recovery State Writes
 
-Updates the latest cart recovery state for each cart.
+The processor fleets should write directly to the shared recovery state store rather than reconverging through one shared processor.
 
 Responsibilities:
-- Maintain latest cart contents, ownership, checkout status, and recovery eligibility.
-- Merge anonymous and known identities when stitching events arrive.
-- Detect state transitions that should create, update, or cancel recovery attempts.
+- `Mutation Processor` applies cart mutations directly into recovery state.
+- `State Event Processor` applies purchase, delete, empty-cart, identity, and other critical state transitions directly into recovery state.
+- `State Event Processor` emits `cart_abandoned` after a successful state transition when abandonment criteria are met.
+- Late `item_added` and `item_removed` events become no-op writes once the cart is already in a terminal non-active state such as purchased or deleted.
+- Correctness is enforced with per-cart idempotency, conditional updates, and version checks in the state store.
+
+Implementation detail for state-write contracts and versioning should live in the companion doc:
+- [State-write, contract, and storage details](./abandoned-cart-recovery-data-contracts-and-storage.md)
 
 ### 4. Recovery Policy Service
 
@@ -218,47 +228,44 @@ The detailed logical schema, indexing, and contract design are intentionally spl
 ## End-to-End Flow
 
 ```text
-Event Stream
+Topic: commerce.cart-events
     |
     v
 Ingestion and Classification
     |
-    +--> Mutation lane --------------------+
-    |                                      |
-    +--> Critical event lane -----------+  |
-                                         \ /
-                                          v
-                               Recovery State Processor
-                                          |
-                                          v
-                                      State Store
-                                          |
-                               abandonment detected
-                                          |
-                                          v
-                                  Recovery Scheduler
-                                          |
-                                          v
-                                  Recovery Attempt Store
-                                          |
-                                      due attempt
-                                          |
-                                          v
-                                   Recovery Executor
-                                          |
-                                          v
-                                 Eligibility Evaluator
-                                          |
-                           eligible ------+------ suppressed
-                                          |
-                                          v
-                                 Notification Adapter
+    +--> Topic: recovery.cart-mutations ------> Mutation Processor ------+
+    |                                                                    |
+    |                                                                    v
+    |                                                             State Store
+    |
+    +--> Topic: recovery.cart-state-events --> State Event Processor ----+
+                                                                         |
+                                                                         +--> Topic: recovery.cart-abandoned
+                                                                                      |
+                                                                                      v
+                                                                             Recovery Scheduler
+                                                                                      |
+                                                                                      v
+                                                                             Recovery Attempt Store
+                                                                                      |
+                                                                                  due attempt
+                                                                                      |
+                                                                                      v
+                                                                             Recovery Executor
+                                                                                      |
+                                                                                      v
+                                                                            Eligibility Evaluator
+                                                                                      |
+                                                                         eligible ----+---- suppressed
+                                                                                      |
+                                                                                      v
+                                                                            Notification Adapter
 ```
 
 1. Cart events are ingested and normalized.
-2. Ingestion classifies the event into a throughput-oriented mutation lane or a protected critical-event lane.
-3. State processor updates the latest cart recovery state.
-4. When abandonment criteria are met, the scheduler creates recovery attempts from the active policy.
+2. Ingestion routes each event into the correct dedicated topic and processor path.
+3. Mutation and state-event processors update the latest cart recovery state directly.
+4. When abandonment criteria are met, the state-event processor emits a `cart_abandoned` event to the scheduler path.
 5. When an attempt becomes due, the executor performs a final state read.
 6. The eligibility evaluator applies ordered pre-send checks.
 7. If the cart is still eligible, the executor sends through the notification adapter.
@@ -274,6 +281,7 @@ Implications:
 - We may schedule attempts as soon as the cart qualifies as abandoned.
 - We never trust scheduled state alone at send time.
 - Purchase completion and cart-empty events override pending recovery attempts.
+- Late mutation events after a cart is already purchased or deleted should be persisted as no-op state transitions rather than reopening eligibility.
 - The send path must be idempotent so duplicate execution does not create duplicate notifications.
 
 ## Identity Stitching
@@ -292,8 +300,10 @@ Detailed identity-link event handling and merge semantics should live in:
 ## Scalability and Reliability Considerations
 
 - Assume at-least-once delivery from the event backbone.
-- Separate high-volume mutation processing from critical invalidation and eligibility-impacting events.
-- Give critical lanes dedicated capacity, tighter lag alerts, and stronger replay guarantees.
+- Use separate topics and separate processor fleets for high-volume mutations, critical state events, and abandoned-cart scheduling.
+- Give critical topics dedicated capacity, tighter lag alerts, and stronger replay guarantees.
+- Avoid a single shared recovery state processor in the middle of the pipeline.
+- Enforce ordering and correctness per `cart_id`, not across the full system.
 - Use idempotency keys for both scheduling and sending.
 - Decouple ingestion from execution with asynchronous queues or scheduled jobs.
 - Prefer latest-state reads for final send decisions rather than relying on stale scheduled payloads.

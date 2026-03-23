@@ -324,6 +324,79 @@ The documentation changes are not committed or pushed yet. The unrelated untrack
 ---
 
 ---
+Timestamp: 2026-03-23 11:48 local
+
+User Request:
+Evaluate whether the current RFC still has a head-of-line bottleneck because separate mutation and state-event processors both feed a single recovery state processor.
+
+Codex Plan:
+- Assess whether the current architecture still serializes traffic at the shared recovery state processor stage.
+- Clarify the architectural correction needed to preserve the HOL-avoidance goal.
+- Keep the answer at design level and use it to drive the next RFC revision if agreed.
+- Intended files to touch: `docs/dev-log.md` only for this planning entry.
+- Expected validation: confirm the log entry is appended and provide a concise architectural recommendation.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the HOL-bottleneck review has been recorded. No RFC docs have been changed yet in this pass.
+
+Notes:
+If the concern is valid, the next RFC revision should likely remove the single shared recovery state processor from the critical path and replace it with direct state writes or a horizontally sharded state-update layer.
+---
+
+---
+Timestamp: 2026-03-23 11:51 local
+
+User Request:
+Update the RFC to remove the shared recovery state processor bottleneck and push the correction.
+
+Codex Plan:
+- Revise the main RFC and companion doc so mutation and state-event processors write directly to shared recovery state rather than reconverging through one processor.
+- Clarify that serialization should happen per `cart_id`, not globally.
+- Stage the documentation updates and append-only dev log, create a commit, and push `main` to `origin`.
+- Intended files to touch: `docs/dev-log.md`, `docs/rfc/abandoned-cart-recovery-system.md`, `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md`, and git metadata for staging, commit, and push operations.
+- Expected validation: inspect the corrected RFC docs, verify the staged diff and latest commit, and ensure `git push origin main` succeeds.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the bottleneck-correction RFC update and push has been recorded. The RFC docs have not been changed yet for this pass.
+
+Notes:
+The corrected design should preserve separate topics and processor fleets while moving correctness enforcement into state-store updates and per-cart idempotency/version controls.
+---
+
+---
+Timestamp: 2026-03-23 11:51 local
+
+User Request:
+Update the RFC to remove the shared recovery state processor bottleneck and push the correction.
+
+Codex Plan:
+- Record the completed RFC correction in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual architecture changes separately.
+- Keep the high-level RFC focused on processor fleets writing directly to shared state with per-cart correctness controls.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to remove the shared recovery state processor, replace it with direct state writes by mutation and state-event processors, and clarify per-cart ordering and correctness.
+- Updated `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md` to align processor responsibilities and state-write semantics with the direct-write design.
+- Verified the revised docs with `sed -n` reads and checked the working tree with `git status --short`.
+
+Outcome:
+The RFC now avoids moving the head-of-line bottleneck downstream into a shared state processor. The design explicitly relies on separate processor fleets writing directly to shared recovery state, with idempotency, conditional updates, and per-cart ordering enforcing correctness.
+
+Notes:
+The documentation changes are ready to commit and push. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
 Timestamp: 2026-03-23 11:36 local
 
 User Request:
@@ -346,4 +419,53 @@ Planning for the commit and push has been recorded. Staging, commit creation, an
 
 Notes:
 The unrelated untracked file `excalidraw.log` should remain excluded.
+---
+
+---
+Timestamp: 2026-03-23 11:45 local
+
+User Request:
+Revise the RFC to explicitly use separate topics and processors, add the missing `cart_abandoned` event, document no-op handling for stale mutation events, and spell out incoming and intermediate topic names in the companion doc.
+
+Codex Plan:
+- Update the main RFC to state the design choice explicitly: separate topics and independent processors rather than generic event lanes.
+- Add `cart_abandoned` to the architecture and flow where relevant.
+- Document that late `item_added` and `item_removed` events become no-op state updates once a cart is no longer active.
+- Expand the companion doc with explicit incoming and intermediate topic names plus the associated processor responsibilities.
+- Intended files to touch: `docs/dev-log.md`, `docs/rfc/abandoned-cart-recovery-system.md`, and `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md`.
+- Expected validation: inspect the revised RFC docs and verify only documentation files changed.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the explicit topic-and-processor RFC revision has been recorded. The RFC docs have not been updated yet for this pass.
+
+Notes:
+This change should make the design decision concrete without forcing vendor-specific queue or database choices into the high-level RFC.
+---
+
+---
+Timestamp: 2026-03-23 11:46 local
+
+User Request:
+Revise the RFC to explicitly use separate topics and processors, add the missing `cart_abandoned` event, document no-op handling for stale mutation events, and spell out incoming and intermediate topic names in the companion doc.
+
+Codex Plan:
+- Record the completed RFC updates in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual document changes separately.
+- Keep the main RFC architectural while putting the explicit topic map and processor ownership in the companion doc.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to replace generic "Event Processing Lanes" wording with an explicit separate-topics-and-processors design, add `cart_abandoned`, and document no-op handling for stale mutation events.
+- Updated `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md` to define the current topic map, processor responsibilities, and the no-op rule for late `item_added` and `item_removed` events.
+- Verified the revised docs with `sed -n` reads and checked the working tree with `git status --short`.
+
+Outcome:
+The RFC now makes a concrete horizontal-scaling decision: separate topics and dedicated processor fleets for cart mutations, critical state events, abandoned-cart scheduling, and due recovery attempts. The companion doc now names the incoming and intermediate topics explicitly and documents the stale-mutation no-op behavior.
+
+Notes:
+The documentation changes are not committed or pushed yet. The unrelated untracked file `excalidraw.log` remains untouched.
 ---

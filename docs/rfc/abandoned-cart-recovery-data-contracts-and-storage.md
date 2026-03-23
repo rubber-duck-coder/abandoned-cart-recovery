@@ -28,7 +28,7 @@ The main RFC focuses on system architecture, operational design, and rollout str
 This document should eventually define:
 
 - inbound event contract expectations
-- processing-lane classification and transport model
+- explicit topic names and processor responsibilities
 - normalized internal recovery event shape
 - `cart_recovery_state` logical schema
 - `recovery_attempt` logical schema
@@ -41,18 +41,60 @@ This document should eventually define:
 
 ### Processing Lanes
 
-This document should later define how the architecture-level mutation lane and critical-event lane are implemented.
+This document should later define how the architecture-level topic split is implemented.
 
 Topics to capture:
 - event classification rules
-- whether isolation is realized with separate queues, separate topics, or another transport abstraction
+- exact topic or queue names
+- which processor fleet owns each topic
 - delivery guarantees expected for critical invalidation events
 - lag and replay expectations per lane
 - how lane outputs converge into the state processor
 
+### Current Topic Map
+
+Current design choice:
+
+- Incoming topic: `commerce.cart-events`
+- Intermediate topic for high-volume cart mutations: `recovery.cart-mutations`
+- Intermediate topic for critical cart state transitions: `recovery.cart-state-events`
+- Intermediate topic for scheduler input: `recovery.cart-abandoned`
+- Due-attempt work queue or topic for executor input: `recovery.recovery-attempts`
+
+Associated processors:
+
+- `CartEventIngressProcessor`
+  - consumes `commerce.cart-events`
+  - normalizes events
+  - routes them to `recovery.cart-mutations` or `recovery.cart-state-events`
+
+- `CartMutationProcessor`
+  - consumes `recovery.cart-mutations`
+  - writes active-cart mutations directly into shared recovery state
+  - uses per-cart conditional updates or version checks to avoid stale overwrites
+  - treats late mutation events as no-op writes when cart state is already terminal
+
+- `CartStateEventProcessor`
+  - consumes `recovery.cart-state-events`
+  - writes purchase, delete or empty-cart, identity, and other critical state transitions directly into shared recovery state
+  - emits `recovery.cart-abandoned` when abandonment criteria are met
+
+- `RecoveryScheduler`
+  - consumes `recovery.cart-abandoned`
+  - creates recovery attempts
+  - enqueues due work into `recovery.recovery-attempts`
+
+- `RecoveryExecutor`
+  - consumes `recovery.recovery-attempts`
+  - performs final eligibility checks and notification sends
+
 ### Cart Recovery State
 
 The state model should prioritize latest eligibility-relevant state over replaying the entire event history during execution.
+
+Behavioral rule:
+- if `item_added` or `item_removed` arrives after the cart is already in a non-active terminal state such as purchased or deleted, the state write should become a no-op because the mutation is no longer relevant to notification eligibility
+- ordering and conflict control should be enforced per `cart_id`, not through a single globally shared state processor
 
 Likely fields:
 - `cart_id`
@@ -103,7 +145,7 @@ Likely fields and concerns:
 - Eligibility-impacting fields should be versioned carefully.
 - Critical terminal events should be representable even if mutation events are delayed.
 - Contract evolution should prefer additive changes.
-- Queue or topic choices should remain implementation details unless a concrete platform decision materially changes the architecture.
+- Topic names and processor boundaries are explicit design choices, while vendor-specific transport implementation remains an implementation detail.
 
 ## Open Questions
 
