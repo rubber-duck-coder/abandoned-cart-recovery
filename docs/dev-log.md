@@ -1948,3 +1948,26 @@ Planning for the executor checkpoint publish is recorded. The executor changes r
 Notes:
 This checkpoint covers core execution flow with mock dependencies, not later hardening or richer failure handling.
 ---
+
+---
+Timestamp: 2026-03-23 14:59 local
+
+User Request:
+Commit and push the validated executor checkpoint when it makes sense.
+
+Codex Plan:
+- Record the published executor checkpoint with the resulting commit and push status.
+- Keep the append-only development log aligned with the implementation history before pausing.
+- Leave the next implementation focus clearly pointed at richer cap and failure variants plus analytics hardening.
+
+Actions Taken:
+- Created commit `97ab61a` with the executor, eligibility, mock frequency-cap, mock notification, consumer, test, and dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The executor checkpoint is published on `origin/main` in commit `97ab61a`. The service now consumes due-attempt Kafka messages, claims execution safely, suppresses terminal-cart attempts, and marks eligible attempts as sent through the mock adapter.
+
+Notes:
+This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
+---
