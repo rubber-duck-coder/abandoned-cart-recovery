@@ -2042,3 +2042,26 @@ Planning for the execution-outcome checkpoint publish is recorded. The changes r
 Notes:
 This checkpoint is still within the mock-based MVP scope; it improves outcome breadth and observability rather than changing architecture.
 ---
+
+---
+Timestamp: 2026-03-23 15:04 local
+
+User Request:
+Commit and push the validated execution-outcome checkpoint when it makes sense.
+
+Codex Plan:
+- Record the published richer-outcome checkpoint with the resulting commit and push status.
+- Keep the append-only development log aligned with implementation history before pausing.
+- Leave the next implementation focus clearly pointed at end-to-end polish and remaining milestone closure.
+
+Actions Taken:
+- Created commit `283f05a` with the executor outcome and analytics coverage updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The richer execution-outcome checkpoint is published on `origin/main` in commit `283f05a`. The service now covers send, terminal-state suppression, frequency-cap suppression, and provider-failure outcomes with matching analytics assertions in the integration suite.
+
+Notes:
+This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
+---
