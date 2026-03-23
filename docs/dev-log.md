@@ -4,6 +4,178 @@ This file is append-only.
 Do not modify or delete previous entries.
 
 ---
+Timestamp: 2026-03-23 13:19 local
+
+User Request:
+Create the first implementation execution plan for the prototype.
+
+Codex Plan:
+- Create a numbered execution plan in `docs/plans` that covers work from project scaffolding through local end-to-end validation.
+- Make the plan resumable for a fresh Codex session by including source-of-truth docs, ordered tasks, checkpoints, verification commands, and handoff notes.
+- Align the plan with the approved RFCs and the prototype decision to use JSON payloads instead of Protobuf.
+- Intended files to touch: `docs/dev-log.md` and `docs/plans/001-mvp-prototype-implementation.md`.
+- Expected validation: inspect the new plan for milestone ordering, checkpoint clarity, and consistency with the RFC docs.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected `docs/plans` and `docs/rfc` to confirm current documentation layout.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the first implementation execution plan has been recorded. The plan document has not been created yet for this pass.
+
+Notes:
+The plan should stay focused on the prototype vertical slice, avoid code-level overdesign, and make JSON the default contract format for local development and debugging.
+---
+
+---
+Timestamp: 2026-03-23 13:21 local
+
+User Request:
+Create the first implementation execution plan for the prototype.
+
+Codex Plan:
+- Record the completed execution-plan draft in a separate append-only log entry.
+- Keep the plan resumable for a fresh session with ordered milestones, checkpoints, verification commands, and handoff instructions.
+- Align the plan with the approved RFCs and the prototype JSON-contract decision.
+
+Actions Taken:
+- Created `docs/plans/001-mvp-prototype-implementation.md`.
+- Reviewed the new plan with `sed -n '1,260p' docs/plans/001-mvp-prototype-implementation.md`.
+- Checked the working tree with `git status --short`.
+
+Outcome:
+The first implementation plan is now drafted in `docs/plans/001-mvp-prototype-implementation.md`. It covers the prototype path from service scaffolding through Postgres schema, JSON contracts, Kafka ingestion, policy resolution, scheduling, execution, analytics emission, and an end-to-end local test checkpoint.
+
+Notes:
+The plan is still in `Proposed` status and has not been committed or pushed. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 13:24 local
+
+User Request:
+Update the implementation plan to require full local Docker Compose execution, make the repo monorepo-friendly for future UI work, and add a scalable metrics choice to the technology decisions.
+
+Codex Plan:
+- Revise the execution plan so scaffolding explicitly includes a full local `docker compose` workflow for the MVP and a monorepo layout that can accommodate additional services or a UI later.
+- Update the technology choices RFC with a concrete metrics and observability decision that is pragmatic for the prototype and scalable for future growth.
+- Keep the changes at the documentation level only and avoid expanding scope into implementation work.
+- Intended files to touch: `docs/dev-log.md`, `docs/plans/001-mvp-prototype-implementation.md`, and `docs/rfc/abandoned-cart-recovery-technology-choices.md`.
+- Expected validation: inspect the updated plan and tech choices sections for consistent wording around Docker Compose, monorepo structure, and metrics stack selection.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Located the relevant execution-plan and technology-choice sections with `rg`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the execution-plan and technology-choice updates has been recorded. The documentation edits have not been applied yet for this pass.
+
+Notes:
+The metrics choice should stay simple for local development while leaving a clear path to horizontal scaling and centralized observability later.
+---
+
+---
+Timestamp: 2026-03-23 13:25 local
+
+User Request:
+Update the implementation plan to require full local Docker Compose execution, make the repo monorepo-friendly for future UI work, and add a scalable metrics choice to the technology decisions.
+
+Codex Plan:
+- Record the completed documentation updates in a separate append-only log entry.
+- Keep the implementation plan focused on a Compose-first local MVP and monorepo-friendly layout.
+- Add a metrics decision that is simple locally and scalable later without changing service instrumentation.
+
+Actions Taken:
+- Updated `docs/plans/001-mvp-prototype-implementation.md` to add a monorepo repository shape, require full local Docker Compose runtime in M1, and include metrics exposure in scaffolding and exit criteria.
+- Updated `docs/rfc/abandoned-cart-recovery-technology-choices.md` to add OpenTelemetry metrics instrumentation and a Prometheus-compatible collection path with local Prometheus and future Mimir or Thanos compatibility.
+- Reviewed the updated sections with `sed -n` and checked the working tree with `git status --short`.
+
+Outcome:
+The execution plan now assumes the MVP can be started end-to-end with Docker Compose and that the repo layout should support future services and UI work without restructuring. The technology choices now include a concrete metrics direction: OpenTelemetry instrumentation with a Prometheus-compatible scrape and storage model.
+
+Notes:
+The technology RFC still documents Protobuf as the default production-oriented async contract choice, while the execution plan keeps JSON as the explicit prototype override. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 13:27 local
+
+User Request:
+Refine the execution plan to emphasize iterative verification, simple initial wiring, and commit-and-push checkpoints after meaningful progress.
+
+Codex Plan:
+- Update the execution plan to prefer the thinnest possible vertical slices first, even if that means starting with simple string payloads and log-based verification before richer contracts.
+- Add explicit guidance that schemas and contracts should evolve only after wiring and end-to-end flow are proven.
+- Add commit and push checkpoints after meaningful milestones so implementation history stays easy to inspect and course-correct.
+- Intended files to touch: `docs/dev-log.md` and `docs/plans/001-mvp-prototype-implementation.md`.
+- Expected validation: inspect the revised execution-plan sections for iterative delivery guidance, simple-first verification, and commit cadence.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Reviewed `docs/plans/001-mvp-prototype-implementation.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the execution-plan refinement has been recorded. The plan document has not been updated yet for this pass.
+
+Notes:
+The revised plan should keep the architecture intact while making implementation sequencing more incremental and easier to validate at each step.
+---
+
+---
+Timestamp: 2026-03-23 13:28 local
+
+User Request:
+Refine the execution plan to emphasize iterative verification, simple initial wiring, and commit-and-push checkpoints after meaningful progress.
+
+Codex Plan:
+- Record the completed execution-plan refinement in a separate append-only log entry.
+- Make the plan explicitly favor wiring-first verification before richer contracts and schemas.
+- Add commit and push checkpoints so implementation history stays easy to inspect and course-correct.
+
+Actions Taken:
+- Updated `docs/plans/001-mvp-prototype-implementation.md` to add execution principles for thin vertical slices, simple-first verification, and staged hardening.
+- Updated milestone details in `docs/plans/001-mvp-prototype-implementation.md` to call out minimal wiring proofs, immediate verification checkpoints, and commit checkpoints after meaningful progress.
+- Reviewed the revised plan with `sed -n '70,260p' docs/plans/001-mvp-prototype-implementation.md`.
+- Checked the working tree with `git status --short`.
+
+Outcome:
+The execution plan now makes iterative delivery more explicit. It starts with the smallest possible proofs of wiring, allows simple string or minimal JSON payloads for early validation, and defers richer contracts and stricter schema handling until the end-to-end path is proven. The plan also now requires commit-and-push checkpoints after each meaningful milestone.
+
+Notes:
+There are still local uncommitted documentation changes from the earlier metrics and monorepo update pass. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 13:29 local
+
+User Request:
+Commit and push the current documentation updates before starting implementation.
+
+Codex Plan:
+- Stage only the updated documentation files and keep unrelated files out of the commit.
+- Create a commit for the execution-plan and technology-choice updates, then push `main` to `origin`.
+- Append a separate follow-up log entry after the push to record the outcome without rewriting this planning entry.
+- Intended files to touch: `docs/dev-log.md`, `docs/plans/001-mvp-prototype-implementation.md`, `docs/rfc/abandoned-cart-recovery-technology-choices.md`, and git metadata for staging, commit, and push operations.
+- Expected validation: verify `git status --short`, confirm the created commit with `git log -1 --stat --oneline`, and ensure `git push origin main` succeeds.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Checked the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the documentation commit and push has been recorded. Staging, commit creation, and push have not been run yet for this pass.
+
+Notes:
+The unrelated untracked file `excalidraw.log` should remain excluded.
+---
 Timestamp: 2026-03-23 10:11 local
 
 User Request:
@@ -321,6 +493,77 @@ The main RFC now renders reliably in Markdown preview using ASCII diagrams, stay
 
 Notes:
 The documentation changes are not committed or pushed yet. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 13:15 local
+
+User Request:
+Brainstorm the implementation execution plan structure before writing numbered plans, with a focus on making it easy for a new Codex session to pick up implementation work.
+
+Codex Plan:
+- Define the expected shape of the execution plan, milestones, checkpoints, and handoff details before writing the formal plan doc.
+- Focus on task granularity, sequencing, and verification points from scaffolding through end-to-end testing.
+- Keep this step discussion-only so the execution plan can be refined before being written to `docs/plans`.
+- Intended files to touch: `docs/dev-log.md` only for this planning entry.
+- Expected validation: confirm the log entry is appended and provide a concrete proposed execution-plan structure.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the execution-plan brainstorming step has been recorded. No execution plan files have been created yet.
+
+Notes:
+The final plan should be optimized for resumability so a new Codex session can continue implementation with minimal re-discovery work.
+---
+
+---
+Timestamp: 2026-03-23 13:18 local
+
+User Request:
+Record the decision that the prototype should use JSON instead of Protobuf because it is easier to debug.
+
+Codex Plan:
+- Append the prototype contract-format decision to the dev log as an architectural note.
+- Keep the decision scoped to the prototype so it does not implicitly override longer-term production choices without review.
+- Avoid changing RFC docs in this step unless explicitly requested later.
+- Intended files to touch: `docs/dev-log.md` only for this planning entry.
+- Expected validation: confirm the decision is appended clearly in the log.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the prototype contract-format decision has been recorded. No RFC docs were changed in this step.
+
+Notes:
+This decision is specific to the prototype implementation path and may differ from longer-term production contract preferences.
+---
+
+---
+Timestamp: 2026-03-23 13:18 local
+
+User Request:
+Record the decision that the prototype should use JSON instead of Protobuf because it is easier to debug.
+
+Codex Plan:
+- Record the actual architectural decision in a separate append-only entry after the planning note.
+- Keep the scope limited to the prototype implementation.
+- Preserve the ability to revisit production contract format later if needed.
+
+Actions Taken:
+- Recorded the prototype contract-format decision in `docs/dev-log.md`.
+
+Outcome:
+Architectural decision: for the prototype implementation, use JSON message payloads instead of Protobuf because JSON is easier to inspect and debug during iterative development and end-to-end validation. This is a pragmatic prototype decision, not a permanent commitment for the long-term production design.
+
+Notes:
+If we later want stronger schema enforcement or more compact payloads for production, we can revisit Protobuf after the prototype path is working end to end.
 ---
 
 ---

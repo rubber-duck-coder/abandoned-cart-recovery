@@ -94,6 +94,8 @@ If a future internal low-latency synchronous service boundary appears, gRPC can 
 - Kafka client libraries
 - Postgres driver and migration tooling
 - Protobuf for internal topic schemas
+- OpenTelemetry metrics instrumentation
+- Prometheus-compatible metrics scraping and storage path
 
 ### Storage Layout
 
@@ -115,6 +117,20 @@ If a future internal low-latency synchronous service boundary appears, gRPC can 
 - Protobuf for recovery-owned Kafka topics
 - JSON for external REST integrations
 - analytics event shape may be flattened JSON if that improves downstream analytics ingestion, even if operational topics use Protobuf
+
+### Metrics And Observability
+
+- instrument the service with OpenTelemetry metrics
+- expose a Prometheus scrape endpoint for local and production-compatible collection
+- use Prometheus in the local Docker Compose environment for quick validation
+- keep the backend Prometheus-compatible so the system can scale later with remote-write or long-term storage systems such as Grafana Mimir or Thanos
+
+Rationale:
+
+- OpenTelemetry keeps the application instrumentation vendor-neutral
+- Prometheus is the simplest local developer experience and easy to inspect during the prototype phase
+- Prometheus-compatible backends give a clear path to horizontally scalable metrics retention and querying later without changing application instrumentation
+- this keeps metrics practical for the take-home while still supporting production growth needs
 
 ## Scaling Posture
 
