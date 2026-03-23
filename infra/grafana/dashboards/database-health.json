@@ -1,0 +1,63 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        { "expr": "sum(rate(recovery_repository_operations_total[1m])) by (repository, operation, outcome)", "legendFormat": "{{repository}} {{operation}} {{outcome}}", "refId": "A" }
+      ],
+      "title": "Repository Operations Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(recovery_repository_operation_duration_ms_bucket[5m])) by (le, repository, operation, outcome))", "legendFormat": "{{repository}} {{operation}} {{outcome}}", "refId": "A" }
+      ],
+      "title": "Repository Latency P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        { "expr": "recovery_db_table_size_bytes", "legendFormat": "{{table}}", "refId": "A" }
+      ],
+      "title": "Tracked Table Size",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "targets": [
+        { "expr": "recovery_db_estimated_rows", "legendFormat": "{{table}} rows", "refId": "A" },
+        { "expr": "recovery_db_pool_active_connections", "legendFormat": "active", "refId": "B" },
+        { "expr": "recovery_db_pool_idle_connections", "legendFormat": "idle", "refId": "C" },
+        { "expr": "recovery_db_pool_pending_threads", "legendFormat": "pending", "refId": "D" }
+      ],
+      "title": "Row Count And Pool Health",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["recovery", "database"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "title": "Database Health",
+  "uid": "database-health",
+  "version": 1
+}

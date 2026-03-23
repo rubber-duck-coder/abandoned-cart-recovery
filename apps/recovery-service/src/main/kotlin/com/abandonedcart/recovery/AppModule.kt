@@ -23,9 +23,14 @@ import com.abandonedcart.recovery.processor.CartStateEventProcessor
 import com.abandonedcart.recovery.repository.CartRecoveryStateRepository
 import com.abandonedcart.recovery.repository.RecoveryAttemptRepository
 import com.abandonedcart.recovery.scheduler.RecoveryScheduler
+import com.abandonedcart.recovery.telemetry.AppTelemetry
+import com.abandonedcart.recovery.telemetry.DatabaseTelemetry
+import com.abandonedcart.recovery.telemetry.OpenTelemetryRecoveryMetrics
+import com.abandonedcart.recovery.telemetry.RecoveryMetrics
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import com.google.inject.Singleton
+import io.opentelemetry.api.OpenTelemetry
 import javax.sql.DataSource
 
 class AppModule(
@@ -41,7 +46,28 @@ class AppModule(
 
     @Provides
     @Singleton
+    fun provideAppTelemetry(appConfig: AppConfig): AppTelemetry =
+        AppTelemetry.create(appConfig.metricsHost, appConfig.metricsPort)
+
+    @Provides
+    @Singleton
+    fun provideOpenTelemetry(appTelemetry: AppTelemetry): OpenTelemetry = appTelemetry.openTelemetry
+
+    @Provides
+    @Singleton
+    fun provideRecoveryMetrics(openTelemetry: OpenTelemetry): RecoveryMetrics =
+        OpenTelemetryRecoveryMetrics(openTelemetry)
+
+    @Provides
+    @Singleton
     fun provideDataSource(appConfig: AppConfig): DataSource = DataSourceFactory.create(appConfig)
+
+    @Provides
+    @Singleton
+    fun provideDatabaseTelemetry(
+        openTelemetry: OpenTelemetry,
+        dataSource: DataSource,
+    ): DatabaseTelemetry = DatabaseTelemetry(openTelemetry, dataSource)
 
     @Provides
     @Singleton
@@ -53,23 +79,35 @@ class AppModule(
 
     @Provides
     @Singleton
-    fun provideCartRecoveryStateRepository(dataSource: DataSource): CartRecoveryStateRepository =
-        CartRecoveryStateRepository(dataSource)
+    fun provideCartRecoveryStateRepository(
+        dataSource: DataSource,
+        recoveryMetrics: RecoveryMetrics,
+    ): CartRecoveryStateRepository =
+        CartRecoveryStateRepository(dataSource, recoveryMetrics)
 
     @Provides
     @Singleton
-    fun provideRecoveryAttemptRepository(dataSource: DataSource): RecoveryAttemptRepository =
-        RecoveryAttemptRepository(dataSource)
+    fun provideRecoveryAttemptRepository(
+        dataSource: DataSource,
+        recoveryMetrics: RecoveryMetrics,
+    ): RecoveryAttemptRepository =
+        RecoveryAttemptRepository(dataSource, recoveryMetrics)
 
     @Provides
     @Singleton
-    fun provideCartMutationProcessor(repository: CartRecoveryStateRepository): CartMutationProcessor =
-        CartMutationProcessor(repository)
+    fun provideCartMutationProcessor(
+        repository: CartRecoveryStateRepository,
+        recoveryMetrics: RecoveryMetrics,
+    ): CartMutationProcessor =
+        CartMutationProcessor(repository, recoveryMetrics)
 
     @Provides
     @Singleton
-    fun provideCartStateEventProcessor(repository: CartRecoveryStateRepository): CartStateEventProcessor =
-        CartStateEventProcessor(repository)
+    fun provideCartStateEventProcessor(
+        repository: CartRecoveryStateRepository,
+        recoveryMetrics: RecoveryMetrics,
+    ): CartStateEventProcessor =
+        CartStateEventProcessor(repository, recoveryMetrics)
 
     @Provides
     @Singleton
@@ -85,7 +123,8 @@ class AppModule(
     fun provideAnalyticsPublisher(
         appConfig: AppConfig,
         kafkaJsonProducer: KafkaJsonProducer,
-    ): AnalyticsPublisher = KafkaAnalyticsPublisher(appConfig, kafkaJsonProducer)
+        recoveryMetrics: RecoveryMetrics,
+    ): AnalyticsPublisher = KafkaAnalyticsPublisher(appConfig, kafkaJsonProducer, recoveryMetrics)
 
     @Provides
     @Singleton
@@ -94,11 +133,13 @@ class AppModule(
         recoveryAttemptRepository: RecoveryAttemptRepository,
         recoveryPolicyService: RecoveryPolicyService,
         analyticsPublisher: AnalyticsPublisher,
+        recoveryMetrics: RecoveryMetrics,
     ): RecoveryScheduler = RecoveryScheduler(
         cartRecoveryStateRepository,
         recoveryAttemptRepository,
         recoveryPolicyService,
         analyticsPublisher,
+        recoveryMetrics,
     )
 
     @Provides
@@ -107,10 +148,12 @@ class AppModule(
         appConfig: AppConfig,
         recoveryAttemptRepository: RecoveryAttemptRepository,
         kafkaJsonProducer: KafkaJsonProducer,
+        recoveryMetrics: RecoveryMetrics,
     ): DueAttemptDispatcher = DueAttemptDispatcher(
         recoveryAttemptRepository,
         kafkaJsonProducer,
         appConfig.recoveryAttemptsTopic,
+        recoveryMetrics,
     )
 
     @Provides
@@ -134,6 +177,7 @@ class AppModule(
         frequencyCapClient: FrequencyCapClient,
         notificationSender: NotificationSender,
         analyticsPublisher: AnalyticsPublisher,
+        recoveryMetrics: RecoveryMetrics,
     ): DueAttemptExecutor = DueAttemptExecutor(
         recoveryAttemptRepository,
         cartRecoveryStateRepository,
@@ -141,6 +185,7 @@ class AppModule(
         frequencyCapClient,
         notificationSender,
         analyticsPublisher,
+        recoveryMetrics,
     )
 
     @Provides
@@ -157,6 +202,7 @@ class AppModule(
         cartStateEventProcessor: CartStateEventProcessor,
         recoveryScheduler: RecoveryScheduler,
         dueAttemptExecutor: DueAttemptExecutor,
+        recoveryMetrics: RecoveryMetrics,
     ): KafkaLoggingConsumer = KafkaLoggingConsumer(
         appConfig,
         jsonCodec,
@@ -165,10 +211,15 @@ class AppModule(
         cartStateEventProcessor,
         recoveryScheduler,
         dueAttemptExecutor,
+        recoveryMetrics,
     )
 
     @Provides
     @Singleton
-    fun provideKafkaJsonProducer(appConfig: AppConfig, jsonCodec: JsonCodec): KafkaJsonProducer =
-        KafkaJsonProducer(appConfig, jsonCodec)
+    fun provideKafkaJsonProducer(
+        appConfig: AppConfig,
+        jsonCodec: JsonCodec,
+        recoveryMetrics: RecoveryMetrics,
+    ): KafkaJsonProducer =
+        KafkaJsonProducer(appConfig, jsonCodec, recoveryMetrics)
 }

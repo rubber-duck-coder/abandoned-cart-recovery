@@ -39,6 +39,15 @@ services:
     ports:
       - "9094:9094"
 
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.7.0
+    command:
+      - "--kafka.server=kafka:9092"
+    ports:
+      - "9308:9308"
+    depends_on:
+      - kafka
+
   prometheus:
     image: prom/prometheus:v2.54.1
     command:
@@ -49,6 +58,20 @@ services:
       - "9090:9090"
     depends_on:
       - recovery-service
+      - kafka-exporter
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
 
   recovery-service:
     build:

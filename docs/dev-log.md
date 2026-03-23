@@ -1756,6 +1756,514 @@ This log entry itself is local until it is included in the follow-up log-only co
 ---
 
 ---
+Timestamp: 2026-03-23 16:27 local
+
+User Request:
+Commit and push the current MVP plus hardening work, then review the plans against the requirements doc and update anything that is missing.
+
+Codex Plan:
+- Review `docs/plans/001-mvp-prototype-implementation.md`, `docs/plans/002-hardening-and-load-validation.md`, and the requirements doc under `docs/requirements`.
+- Make only the minimum plan or documentation updates needed to reflect the current implementation state and any remaining gaps.
+- Validate the current repository state if needed, then commit and push the full checkpoint while excluding unrelated files.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry before reviewing the plans and publishing the current checkpoint.
+
+Outcome:
+Planning for the review-and-publish checkpoint is recorded. The next step is to compare the plans and the requirements doc against the current implementation and then publish the result.
+
+Notes:
+The goal here is to close the loop on scope coverage, not to start a new feature slice. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
+Timestamp: 2026-03-23 16:29 local
+
+User Request:
+Commit and push the current MVP plus hardening work, then review the plans against the requirements doc and update anything that is missing.
+
+Codex Plan:
+- Review `docs/plans/001-mvp-prototype-implementation.md`, `docs/plans/002-hardening-and-load-validation.md`, and the requirements doc under `docs/requirements`.
+- Make only the minimum plan or documentation updates needed to reflect the current implementation state and any remaining gaps.
+- Validate the current repository state if needed, then commit and push the full checkpoint while excluding unrelated files.
+
+Actions Taken:
+- Reviewed `docs/plans/001-mvp-prototype-implementation.md`.
+- Reviewed `docs/plans/002-hardening-and-load-validation.md`.
+- Reviewed `docs/requirements/Case study - Staff Engineer for Growth.pdf` with `pdftotext -layout`.
+- Updated `docs/plans/001-mvp-prototype-implementation.md`.
+- Updated `docs/plans/002-hardening-and-load-validation.md`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+
+Outcome:
+The requirement review is complete and the build passed. Plan `001` now reflects the accepted MVP scope as completed, while keeping deferred follow-ups explicit. Plan `002` is now marked completed for the first hardening pass. The one meaningful partial area found during the requirements check is anonymous-to-known identity stitching: it is covered in the RFCs, schema, and state fields, but it is not yet called out by a dedicated implementation slice or end-to-end test. Everything else required for the take-home is covered by the current RFCs, prototype implementation, hardening work, and the append-only dev log.
+
+Notes:
+The next step is publication, not more scope expansion. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
+Timestamp: 2026-03-23 15:29 local
+
+User Request:
+Refine plan 002 so the `20%` cart state change slice is explicitly split between completed and abandoned events.
+
+Codex Plan:
+- Update the hardening plan to define the starter cart state change breakdown inside the mixed-traffic profile.
+- Keep the split scoped to the starter scenario defaults so it remains easy to tune later.
+- Leave the broader plan structure unchanged while making the load shape more operationally clear.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Read the mixed-traffic section in `docs/plans/002-hardening-and-load-validation.md`.
+- Appended this planning entry before modifying the plan document.
+
+Outcome:
+Planning for the next 002 refinement is recorded. The hardening plan document has not been updated yet.
+
+Notes:
+This update is about making the starter mixed profile more realistic and analyzable without locking the system into a permanent production event distribution.
+---
+
+---
+Timestamp: 2026-03-23 15:29 local
+
+User Request:
+Refine plan 002 so the `20%` cart state change slice is explicitly split between completed and abandoned events.
+
+Codex Plan:
+- Update the hardening plan to define the starter cart state change breakdown inside the mixed-traffic profile.
+- Keep the split scoped to the starter scenario defaults so it remains easy to tune later.
+- Leave the broader plan structure unchanged while making the load shape more operationally clear.
+
+Actions Taken:
+- Updated `docs/plans/002-hardening-and-load-validation.md`.
+- Added the starter cart state split under the mixed-traffic profile and starter scenario defaults.
+
+Outcome:
+Plan 002 now makes the `20%` cart state change slice explicit: `25%` completed or purchased events and `75%` abandoned events. The starter mixed profile is now concrete enough to drive an initial script-based load generator without more interpretation.
+
+Notes:
+The split remains a starter default rather than a hardcoded production truth. A good next refinement is to decide whether the mutation slice should itself be broken down into `item_added` versus `item_removed` percentages.
+---
+
+---
+Timestamp: 2026-03-23 15:31 local
+
+User Request:
+Lock in Plan 002 and start execution on the hardening work.
+
+Codex Plan:
+- Treat `docs/plans/002-hardening-and-load-validation.md` as the active plan and begin with `H1`.
+- Audit the current metrics, Compose stack, and service wiring to identify the smallest observability gaps.
+- Add local dashboard provisioning and any missing telemetry needed to observe Kafka, DB, dispatcher, executor, and runtime behavior.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Read `docs/plans/002-hardening-and-load-validation.md`.
+- Inspected the current repository layout for service, infra, and build files.
+- Appended this planning entry before making implementation changes.
+
+Outcome:
+Plan 002 is now the active implementation path locally. Execution is starting with the observability baseline rather than the load generator.
+
+Notes:
+The first slice should stay narrow: prove local Grafana and Prometheus wiring plus minimally sufficient metrics before adding any synthetic load tooling.
+---
+
+---
+Timestamp: 2026-03-23 15:46 local
+
+User Request:
+Lock in Plan 002 and start execution on the hardening work.
+
+Codex Plan:
+- Treat `docs/plans/002-hardening-and-load-validation.md` as the active plan and begin with `H1`.
+- Audit the current metrics, Compose stack, and service wiring to identify the smallest observability gaps.
+- Add local dashboard provisioning and any missing telemetry needed to observe Kafka, DB, dispatcher, executor, and runtime behavior.
+
+Actions Taken:
+- Added app telemetry under `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/telemetry/`.
+- Updated `AppModule.kt`, `RecoveryApplication.kt`, `KafkaJsonProducer.kt`, `KafkaLoggingConsumer.kt`, `CartMutationProcessor.kt`, `CartStateEventProcessor.kt`, `RecoveryScheduler.kt`, `DueAttemptDispatcher.kt`, `DueAttemptExecutor.kt`, `KafkaAnalyticsPublisher.kt`, `CartRecoveryStateRepository.kt`, and `RecoveryAttemptRepository.kt` to emit Prometheus metrics.
+- Added Grafana provisioning and dashboard JSON files under `infra/grafana/`.
+- Updated `docker-compose.yml` and `infra/prometheus/prometheus.yml` to add Grafana and Kafka exporter plus the required scrape config.
+- Updated Kafka integration tests to use per-suite test topic names so builds remain reliable even if the local stack is already running.
+- Updated `README.md` and `docs/plans/002-hardening-and-load-validation.md`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+- Ran `docker compose up --build -d`.
+- Ran `docker compose up --build -d --force-recreate recovery-service prometheus grafana kafka-exporter`.
+- Verified `curl -sf http://localhost:8080/health`.
+- Verified `curl -sf http://localhost:9464/metrics`.
+- Verified Grafana health with `docker compose exec -T grafana wget -qO- http://localhost:3000/api/health`.
+- Verified Grafana dashboard provisioning with `docker compose exec -T grafana wget -qO- http://admin:admin@localhost:3000/api/search`.
+- Verified Prometheus active targets with `docker compose exec -T prometheus wget -qO- 'http://localhost:9090/api/v1/targets?state=active'`.
+
+Outcome:
+`H1` is completed locally. The recovery service now exposes pipeline, repository, scheduling, dispatch, execution, DB, and runtime metrics. Grafana is provisioned locally with starter dashboards for pipeline overview, Kafka health, database health, execution health, and resource view. Prometheus is scraping both the recovery service and Kafka exporter. The build passes even while the local runtime stack is up because the Kafka integration tests now isolate themselves with unique topic names.
+
+Notes:
+No load generator has been added yet; that remains the next slice in `H2`. The local runtime stack is currently running with Grafana available on `http://localhost:3000` using `admin` / `admin`. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 15:52 local
+
+User Request:
+Continue execution on Plan 002 after the observability baseline checkpoint.
+
+Codex Plan:
+- Implement the `H2` script-based load generator under `scripts/load/` using the locked mixed-traffic profile defaults.
+- Add the smallest runtime support needed to let locally generated abandoned-cart traffic flow into dispatch and execution under load.
+- Document the generator commands and validate the scaffold with a short local smoke run against the Compose stack.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed `docs/plans/002-hardening-and-load-validation.md`.
+- Reviewed the current policy timing and contract classes.
+- Verified that the runtime app does not yet trigger `DueAttemptDispatcher` on its own.
+- Appended this planning entry before making implementation changes.
+
+Outcome:
+Planning for the `H2` scaffold is recorded. The next implementation slice will cover both the generator script and the minimal runtime dispatch loop needed for end-to-end local load flow.
+
+Notes:
+The policy still uses `24h / 72h / 168h` touch delays, so the generator will likely need a configurable abandoned-event backdate if we want first-touch attempts to become due immediately during local runs.
+---
+
+---
+Timestamp: 2026-03-23 15:56 local
+
+User Request:
+Continue execution on Plan 002 after the observability baseline checkpoint.
+
+Codex Plan:
+- Implement the `H2` script-based load generator under `scripts/load/` using the locked mixed-traffic profile defaults.
+- Add the smallest runtime support needed to let locally generated abandoned-cart traffic flow into dispatch and execution under load.
+- Document the generator commands and validate the scaffold with a short local smoke run against the Compose stack.
+
+Actions Taken:
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppConfig.kt` to add dispatcher-loop config.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/RecoveryApplication.kt` to start a periodic due-attempt dispatcher loop.
+- Added `scripts/load/generate_mixed_traffic.py`.
+- Added `docs/runbooks/load-testing.md`.
+- Updated `README.md` and `docs/plans/002-hardening-and-load-validation.md`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+- Ran `docker compose up --build -d --force-recreate recovery-service`.
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile smooth --events-per-second 12 --ramp-seconds 2 --sustain-seconds 4 --cooldown-seconds 1 --cart-count 200`.
+- Verified metrics with `curl -sf http://localhost:9464/metrics`.
+- Verified recovery-attempt statuses with `docker compose exec -T postgres psql -U recovery -d recovery -c "select status, count(*) from recovery_attempt group by status order by status;"`.
+
+Outcome:
+`H2` is completed locally. The repo now has a repeatable script-based mixed-traffic generator that publishes mutation and state traffic into Kafka through the existing Compose stack. The runtime service now runs a periodic dispatcher loop, which allowed the smoke run to create scheduled attempts, dispatch due push attempts, and execute them to `SENT`. The smoke run produced `55` mutation events, `5` completed events, and `9` abandoned events over about seven seconds, and the metrics surface showed scheduled, dispatched, and executed attempt counters moving.
+
+Notes:
+Two small issues came up and were resolved during validation: the script was made compatible with the host Python version, and the actual Kafka publish smoke run needed Docker-socket access outside the sandbox. The smoke run also produced some `missing_state` scheduler outcomes, which is acceptable for now because the mixed stream intentionally allows realistic interleaving between upstream mutation traffic and direct abandoned-cart events.
+---
+
+---
+Timestamp: 2026-03-23 15:59 local
+
+User Request:
+Continue from the completed H2 scaffold into H3 smooth-load validation.
+
+Codex Plan:
+- Run one sustained mixed-traffic profile using the locked default smooth timings.
+- Sample Prometheus and runtime state during and after the run to capture throughput, lag, and backlog behavior.
+- Record the first sustained-load observations in the plan or a report document without tuning the system yet.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed the H3 section of `docs/plans/002-hardening-and-load-validation.md`.
+- Appended this planning entry before starting the sustained-load validation work.
+
+Outcome:
+Planning for `H3` is recorded. The next step is to run the first sustained mixed-load profile and capture baseline observations.
+
+Notes:
+The immediate goal is measurement, not optimization. A single stable baseline run is enough to identify the first clear bottleneck before attempting any tuning.
+---
+
+---
+Timestamp: 2026-03-23 16:04 local
+
+User Request:
+Continue from the completed H2 scaffold into H3 smooth-load validation.
+
+Codex Plan:
+- Run one sustained mixed-traffic profile using the locked default smooth timings.
+- Sample Prometheus and runtime state during and after the run to capture throughput, lag, and backlog behavior.
+- Record the first sustained-load observations in the plan or a report document without tuning the system yet.
+
+Actions Taken:
+- Captured a clean baseline for lag and local row counts before starting the sustained runs.
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile smooth --events-per-second 80 --cart-count 2000`.
+- Sampled Prometheus during and after the `80 EPS` run for lag, processed rate, scheduling rate, and execution rate.
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile smooth --events-per-second 160 --cart-count 4000`.
+- Sampled Prometheus during and after the `160 EPS` run for lag, processed rate, scheduling rate, execution rate, heap, and table-size growth.
+- Queried Postgres attempt-status counts during the post-run drain checks.
+- Added `docs/reports/002-h3-smooth-load-baseline.md`.
+- Updated `docs/plans/002-hardening-and-load-validation.md` to mark `H3` completed locally.
+
+Outcome:
+`H3` is completed locally. Two sustained smooth-load runs were captured. At `80 EPS`, the run produced `6050` events with a peak `recovery-service` consumer lag of `646`, and the lag drained back to `0` immediately after the run. At `160 EPS`, the run produced `12090` events with a peak lag of `1317`, and that lag also drained back to `0` immediately after the run. The highest validated stable smooth-load rate so far is `160 EPS`, and Kafka consumer lag is the clearest early pressure signal even though the system has not yet crossed into an unstable sustained backlog regime.
+
+Notes:
+The resource read is still coarse in this first pass; CPU from the current process-load gauge should not be treated as a precise ceiling metric. Because the same local stack was reused across runs, DB row counts after the second run are cumulative rather than isolated per scenario. The natural next step is `H4` burst validation, where backlog growth and drain time should be more revealing than the smooth-load path.
+---
+
+---
+Timestamp: 2026-03-23 16:11 local
+
+User Request:
+Continue from H3 into H4 burst-load validation.
+
+Codex Plan:
+- Run one mixed-traffic burst scenario using the existing load generator.
+- Measure peak Kafka consumer lag, backlog drain time, and post-burst recovery.
+- Record the burst observations in the hardening report set and update the plan status if the run is conclusive.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed the H4 section of `docs/plans/002-hardening-and-load-validation.md`.
+- Appended this planning entry before starting the burst-validation work.
+
+Outcome:
+Planning for `H4` is recorded. The next step is to execute the first burst scenario and capture queue growth plus recovery time.
+
+Notes:
+The main question for this slice is not just how high lag spikes, but whether the system returns to zero lag quickly after the burst ends without manual intervention.
+---
+
+---
+Timestamp: 2026-03-23 16:16 local
+
+User Request:
+Add a hybrid smooth-plus-bursty load mode so the generator can model steady traffic with periodic deal-drop style spikes.
+
+Codex Plan:
+- Extend the load generator with a periodic burst mode on top of the existing smooth baseline.
+- Reuse the existing timing knobs where practical and add one explicit cadence knob for recurring bursts.
+- Update the hardening plan and runbook so the new mode is documented and easy to run in future sessions.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed `scripts/load/generate_mixed_traffic.py`.
+- Reviewed `docs/runbooks/load-testing.md`.
+- Reviewed `docs/plans/002-hardening-and-load-validation.md`.
+- Appended this planning entry before modifying the generator and docs.
+
+Outcome:
+Planning for the hybrid load-mode addition is recorded. The next step is to implement the new profile and document how to use it.
+
+Notes:
+The goal is to model recurring promotional spikes on top of a steady background rate, not to replace the existing pure smooth or pure burst profiles.
+---
+
+---
+Timestamp: 2026-03-23 16:18 local
+
+User Request:
+Run the new hybrid smooth-plus-bursty mode and then continue into the next phase of Plan 002.
+
+Codex Plan:
+- Execute one hybrid load run that combines a steady baseline with a recurring burst window.
+- Use the smooth, burst, and hybrid runs together to identify the first-order pressure signal and the most pragmatic next tuning actions.
+- Record the hybrid observations and convert them into a short H5 bottleneck-analysis output.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed the H5 section of `docs/plans/002-hardening-and-load-validation.md`.
+- Appended this planning entry before starting the hybrid run and analysis.
+
+Outcome:
+Planning for the hybrid validation plus H5 analysis is recorded. The next step is to run the hybrid profile and summarize the first tuning recommendations from all collected load baselines.
+
+Notes:
+This is an analysis-first H5 pass. The intent is to make concrete recommendations from measured behavior before applying any code or config tuning changes.
+---
+
+---
+Timestamp: 2026-03-23 16:17 local
+
+User Request:
+Add a hybrid smooth-plus-bursty load mode so the generator can model steady traffic with periodic deal-drop style spikes.
+
+Codex Plan:
+- Extend the load generator with a periodic burst mode on top of the existing smooth baseline.
+- Reuse the existing timing knobs where practical and add one explicit cadence knob for recurring bursts.
+- Update the hardening plan and runbook so the new mode is documented and easy to run in future sessions.
+
+Actions Taken:
+- Updated `scripts/load/generate_mixed_traffic.py`.
+- Added a new `smooth-bursty` profile and `--burst-period-seconds`.
+- Updated `docs/runbooks/load-testing.md`.
+- Updated `docs/plans/002-hardening-and-load-validation.md`.
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile smooth-bursty --events-per-second 20 --ramp-seconds 2 --sustain-seconds 12 --burst-seconds 3 --burst-period-seconds 6 --dry-run`.
+
+Outcome:
+The load generator now supports a hybrid `smooth-bursty` mode that keeps a steady baseline rate and injects recurring burst windows at a configurable cadence. The dry run confirmed the intended rate shape: a smooth baseline followed by a burst window after the configured period, then a return to the baseline. The runbook and plan now document this mode for future hardening runs.
+
+Notes:
+This mode is intended for scenarios like promotional drops or new-fashion launches layered on top of normal site traffic. It is a generator-only change; no runtime service behavior was changed for this slice.
+---
+
+---
+Timestamp: 2026-03-23 16:14 local
+
+User Request:
+Continue from H3 into H4 burst-load validation.
+
+Codex Plan:
+- Run one mixed-traffic burst scenario using the existing load generator.
+- Measure peak Kafka consumer lag, backlog drain time, and post-burst recovery.
+- Record the burst observations in the hardening report set and update the plan status if the run is conclusive.
+
+Actions Taken:
+- Captured a clean pre-run lag baseline.
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile burst --events-per-second 80 --burst-multiplier 4 --cart-count 4000`.
+- Sampled Prometheus during the burst for Kafka lag, processed rate, and execution rate.
+- Sampled Prometheus immediately after the run for post-burst lag and peak lag over the last 3 minutes.
+- Queried Postgres for cumulative attempt-status counts and observed `recovery_attempt` table-size growth.
+- Added `docs/reports/002-h4-burst-load-baseline.md`.
+- Updated `docs/plans/002-hardening-and-load-validation.md` to mark `H4` completed locally.
+
+Outcome:
+`H4` is completed locally. The first burst run generated `20450` events over about `90.34s`, including `3091` abandoned events. The burst window drove peak `recovery-service` Kafka consumer lag to `2612`, while the mid-burst processed-rate sample was about `192.60 events/s`. The key result is recovery: lag returned to `0` on the first post-run poll, so the observed recovery time was less than `1s` after the generator stopped. Kafka consumer lag remains the clearest pressure indicator, but the system did not retain a persistent post-burst backlog in this scenario.
+
+Notes:
+The status snapshot and table growth numbers are cumulative because the same local stack was reused across earlier runs. The next natural step is `H5`, where we can use the measured smooth and burst baselines to identify the first-order bottleneck and try a small number of targeted tuning changes.
+---
+
+---
+Timestamp: 2026-03-23 16:23 local
+
+User Request:
+Run the new hybrid smooth-plus-bursty mode and then continue into the next phase of Plan 002.
+
+Codex Plan:
+- Execute one hybrid load run that combines a steady baseline with a recurring burst window.
+- Use the smooth, burst, and hybrid runs together to identify the first-order pressure signal and the most pragmatic next tuning actions.
+- Record the hybrid observations and convert them into a short H5 bottleneck-analysis output.
+
+Actions Taken:
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile smooth-bursty --events-per-second 80 --sustain-seconds 90 --burst-seconds 15 --burst-period-seconds 30 --burst-multiplier 4 --cart-count 4000`.
+- Sampled Prometheus after the run for Kafka consumer lag and `recovery_attempt` table-size growth.
+- Reviewed `docs/reports/002-h3-smooth-load-baseline.md`.
+- Reviewed `docs/reports/002-h4-burst-load-baseline.md`.
+- Reviewed `docs/reports/002-hybrid-smooth-bursty-baseline.md`.
+- Added `docs/reports/002-h5-bottleneck-analysis.md`.
+- Updated `docs/plans/002-hardening-and-load-validation.md` to mark `H5` completed locally.
+
+Outcome:
+The hybrid load run completed successfully and produced `15650` events over about `120.47s`, including `2358` abandoned events. Peak `recovery-service` Kafka consumer lag for the hybrid window was `2210`, and lag drained back to `0` after the run. Based on the smooth, burst, and hybrid baselines together, `H5` is now completed locally with a load-backed architectural conclusion: Kafka consumer lag is the first clear pressure signal, while the current local stack still recovers without leaving a persistent backlog. The new H5 report recommends that the next scaling move should focus on Kafka-side parallelism and workload partitioning before deeper Postgres tuning.
+
+Notes:
+No runtime tuning change was applied in this pass. This is intentionally an analysis-first `H5` closeout because the collected data already supports a concrete hardening conclusion. The next phase is `H6`, where we should tighten the runbook and summarize the load-validation findings for a fresh session.
+---
+
+---
+Timestamp: 2026-03-23 16:24 local
+
+User Request:
+Continue to the next phase of Plan 002 after the hybrid run and H5 analysis.
+
+Codex Plan:
+- Tighten the load-testing runbook so a fresh session can rerun the validated scenarios without digging through prior notes.
+- Summarize the currently validated smooth, burst, and hybrid findings in one short hardening summary doc.
+- Update the `H6` status in the plan if the runbook and findings are complete enough to hand off.
+
+Actions Taken:
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed `docs/runbooks/load-testing.md`.
+- Appended this planning entry before updating the runbook and summary docs.
+
+Outcome:
+Planning for the H6 hardening handoff is recorded. The next step is to tighten the runbook, summarize the findings, and then mark H6 if the handoff is complete.
+
+Notes:
+This phase is documentation and repeatability focused. No runtime behavior changes are planned unless the handoff docs expose a real gap.
+---
+
+---
+Timestamp: 2026-03-23 16:25 local
+
+User Request:
+Continue to the next phase of Plan 002 after the hybrid run and H5 analysis.
+
+Codex Plan:
+- Tighten the load-testing runbook so a fresh session can rerun the validated scenarios without digging through prior notes.
+- Summarize the currently validated smooth, burst, and hybrid findings in one short hardening summary doc.
+- Update the `H6` status in the plan if the runbook and findings are complete enough to hand off.
+
+Actions Taken:
+- Added `docs/reports/002-hardening-summary.md`.
+- Updated `docs/runbooks/load-testing.md`.
+- Updated `docs/plans/002-hardening-and-load-validation.md`.
+
+Outcome:
+`H6` is completed locally. The runbook now includes the exact validated smooth, burst, and hybrid commands, the recommended dashboards, and a short current-read section. A separate hardening summary doc now consolidates the measured runs, the first bottleneck conclusion, and the next recommended hardening moves. The `002` plan now marks `H1` through `H6` as completed locally.
+
+Notes:
+This closes the first local hardening pass for Plan 002. The next useful step is not more plan writing; it is either committing these hardening docs and telemetry changes or starting a focused tuning slice that increases Kafka-side processing parallelism and re-runs the same scenarios.
+---
+
+---
+Timestamp: 2026-03-23 15:28 local
+
+User Request:
+Refine plan 002 with a concrete mixed-traffic percentage split, starter load durations, and initial Grafana dashboard scope.
+
+Codex Plan:
+- Update the hardening plan to make the starter mixed-load profile explicit and configurable.
+- Add the initial default timings for ramp, sustain, and burst runs so early iterations stay fast.
+- Tighten the dashboard requirements around Kafka, lag, throughput, DB size visibility, resource utilization, and error rate.
+
+Actions Taken:
+- Read `docs/plans/002-hardening-and-load-validation.md`.
+- Reviewed the latest append-only entries in `docs/dev-log.md`.
+- Appended this planning entry before modifying the plan document.
+
+Outcome:
+Planning for the next 002 refinement is recorded. The hardening plan document has not been updated yet.
+
+Notes:
+The new defaults are intended only as fast local iteration settings and should remain configurable for later larger runs.
+---
+
+---
+Timestamp: 2026-03-23 15:28 local
+
+User Request:
+Refine plan 002 with a concrete mixed-traffic percentage split, starter load durations, and initial Grafana dashboard scope.
+
+Codex Plan:
+- Update the hardening plan to make the starter mixed-load profile explicit and configurable.
+- Add the initial default timings for ramp, sustain, and burst runs so early iterations stay fast.
+- Tighten the dashboard requirements around Kafka, lag, throughput, DB size visibility, resource utilization, and error rate.
+
+Actions Taken:
+- Updated `docs/plans/002-hardening-and-load-validation.md`.
+- Added explicit starter event mix and starter run durations.
+- Expanded the first dashboard pack requirements and the load-generator expectations.
+
+Outcome:
+Plan 002 now uses an explicit starter mixed profile of `80%` mutation events and `20%` cart state change events. The initial default timings are now documented as `30s` ramp, `1m` sustain for smooth runs, and `30s` ramp plus `1m` burst for burst runs. The dashboard scope now clearly requires Kafka metrics, lag, throughput, DB size visibility, resource utilization, and failure or error rate.
+
+Notes:
+The plan still leaves durations and event mix configurable so later iterations can scale up without rewriting the plan. A useful next refinement is to define which specific cart state change events make up the `20%` slice.
+---
+
+---
 Timestamp: 2026-03-23 14:46 local
 
 User Request:
@@ -2162,6 +2670,126 @@ Planning for the milestone-assessment publish is recorded. The assessment update
 
 Notes:
 The scope of this checkpoint is documentation only.
+---
+
+---
+Timestamp: 2026-03-23 15:18 local
+
+User Request:
+Create a new `002` plan focused on hardening, load testing, telemetry, dashboards, and understanding system behavior under sustained and bursty traffic.
+
+Codex Plan:
+- Draft a new numbered execution plan for hardening and load validation under `docs/plans`.
+- Center the plan on synthetic Kafka load generation, telemetry, dashboards, bottleneck analysis, and repeatable validation.
+- Keep the first draft concrete enough to iterate on, with milestones, success criteria, and explicit open decisions.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Read `docs/plans/001-mvp-prototype-implementation.md`.
+- Listed the existing plans under `docs/plans`.
+- Added `docs/plans/002-hardening-and-load-validation.md`.
+
+Outcome:
+The first draft of Plan 002 is now in place locally. It proposes a hardening track with milestones for observability baseline, load-generator scaffold, smooth-load validation, burst-load validation, bottleneck analysis, and a final hardening runbook.
+
+Notes:
+The current draft leaves a few design choices explicitly open for review, especially the exact load-generator implementation approach and how much of Kafka lag instrumentation should come from app metrics versus exporter metrics. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 15:20 local
+
+User Request:
+Incorporate decisions for Plan 002: use a simple script-based load generator, rely on Kafka metrics for lag visibility, and keep the exercise scoped to local single-machine load.
+
+Codex Plan:
+- Update Plan 002 to replace the earlier open questions with explicit decisions.
+- Keep the plan pragmatic and local-first rather than broadening into theoretical production-scale analysis.
+- Preserve the hardening milestones while clarifying the implementation approach for load generation and observability.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Read `docs/plans/002-hardening-and-load-validation.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the Plan 002 decision update is recorded. The plan text has not been modified yet in this pass.
+
+Notes:
+These decisions narrow the plan meaningfully: the next draft should remove unnecessary ambiguity around tooling and scope.
+---
+
+---
+Timestamp: 2026-03-23 15:22 local
+
+User Request:
+Update Plan 002 so both smooth-load and burst-load testing primarily use mixed traffic that resembles production behavior.
+
+Codex Plan:
+- Refocus the load model so mixed traffic is the primary scenario for both sustained and burst validation.
+- Keep mutation-only profiles as optional secondary diagnostics rather than the main load target.
+- Align the milestone wording and first-iteration steps with this production-like traffic mix.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Read `docs/plans/002-hardening-and-load-validation.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the mixed-traffic update to Plan 002 is recorded. The plan text has not been changed yet in this pass.
+
+Notes:
+This change should make the hardening plan more representative of the production traffic shape we actually care about.
+---
+
+---
+Timestamp: 2026-03-23 15:23 local
+
+User Request:
+Update Plan 002 so both smooth-load and burst-load testing primarily use mixed traffic that resembles production behavior.
+
+Codex Plan:
+- Make mixed traffic the primary load model for both sustained and burst validation.
+- Relegate mutation-only profiles to optional diagnostic scenarios.
+- Align milestone definitions and the recommended first iteration with this more production-like traffic mix.
+
+Actions Taken:
+- Updated `docs/plans/002-hardening-and-load-validation.md`.
+- Revised the `Load Model` section to prioritize smooth and bursty mixed traffic.
+- Updated `H2`, `H3`, `H4`, and the `Recommended First Iteration` section to make mixed traffic the default focus.
+
+Outcome:
+Plan 002 now treats mixed traffic as the main hardening workload for both smooth and burst scenarios. Mutation-only traffic remains available as a secondary diagnostic mode rather than the primary validation target.
+
+Notes:
+The updated plan is local only at this point. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 15:21 local
+
+User Request:
+Incorporate decisions for Plan 002: use a simple script-based load generator, rely on Kafka metrics for lag visibility, and keep the exercise scoped to local single-machine load.
+
+Codex Plan:
+- Replace the earlier open questions in Plan 002 with explicit locked decisions.
+- Align repository additions and milestone wording with the script-based load-generator approach.
+- Keep the scope local and pragmatic without adding a theoretical production-scale reporting track.
+
+Actions Taken:
+- Updated `docs/plans/002-hardening-and-load-validation.md`.
+- Added the clarified assumptions to the `Planning Assumptions` section.
+- Replaced `apps/load-generator/` with `scripts/load/`.
+- Added a `Locked Decisions For This Plan` section and removed the earlier open-decision list.
+
+Outcome:
+Plan 002 now reflects the chosen direction: script-based load generation, Kafka or exporter metrics for lag visibility, and local single-machine validation only. The hardening plan is now more specific and easier to execute.
+
+Notes:
+The updated plan is local only at this point. The unrelated untracked file `excalidraw.log` remains untouched.
 ---
 
 ---

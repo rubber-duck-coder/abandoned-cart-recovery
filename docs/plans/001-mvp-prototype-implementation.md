@@ -2,7 +2,7 @@
 
 ## Status
 
-In Review
+Completed
 
 ## Milestone Status
 
@@ -15,14 +15,17 @@ In Review
 | M5 | Completed | Deterministic mock experimentation and policy resolution are implemented with unit coverage. |
 | M6 | Completed | Abandoned-cart scheduling, idempotent attempt creation, and scheduling analytics are implemented. |
 | M7 | Completed | Due-attempt dispatch, Kafka execution handoff, eligibility checks, frequency-cap suppression, provider failure handling, and mock send behavior are implemented. |
-| M8 | Mostly Completed | Scheduling and execution analytics are emitted and asserted in integration tests, but the explicit `policy_selected` analytics event from the plan is not implemented as a distinct event type. |
-| M9 | Mostly Completed | Dedicated E2E tests cover a happy-path send flow and a suppression-before-dispatch flow. The remaining gap versus the original plan is an explicit replay-focused E2E assertion across the full flow. |
+| M8 | Completed | Scheduling and execution analytics are emitted and asserted in integration tests. Policy attribution is carried on `attempt_scheduled` rather than as a separate `policy_selected` event type. |
+| M9 | Completed | Dedicated E2E tests cover a happy-path send flow and a suppression-before-dispatch flow. A replay-focused full-flow E2E assertion is deferred, but the accepted MVP scope is implemented and verified. |
 
-## Residual Gaps
+## Deferred Follow-Ups
 
-- `M8`: no distinct `policy_selected` analytics event is emitted today; policy attribution is present on `attempt_scheduled` instead.
-- `M9`: there is no dedicated full-flow replay E2E test proving duplicate upstream events do not lead to duplicate sends end to end.
-- `M4`/`M7`: some planned edge-case checks are implemented in behavior but not yet called out by dedicated tests, especially malformed-event handling and expired-lease recovery assertions.
+- no distinct `policy_selected` analytics event is emitted today; policy attribution is present on `attempt_scheduled` instead
+- there is no dedicated full-flow replay E2E test proving duplicate upstream events do not lead to duplicate sends end to end
+- some planned edge-case checks are implemented in behavior but not yet called out by dedicated tests, especially malformed-event handling and expired-lease recovery assertions
+- anonymous-to-known identity stitching is represented in the RFCs, schema, and state fields, but there is no dedicated implementation slice or E2E test that proves a first-class identity-link flow end to end
+
+These are improvement candidates, not MVP-scope blockers for the take-home deliverable.
 
 ## Goal
 

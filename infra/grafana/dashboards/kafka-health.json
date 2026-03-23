@@ -1,0 +1,62 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        { "expr": "sum(kafka_consumergroup_lag{consumergroup=\"recovery-service\"}) by (topic)", "legendFormat": "{{topic}}", "refId": "A" }
+      ],
+      "title": "Consumer Lag By Topic",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        { "expr": "sum(rate(recovery_kafka_events_consumed_total[1m])) by (topic)", "legendFormat": "consumed {{topic}}", "refId": "A" },
+        { "expr": "sum(rate(recovery_kafka_events_processed_total[1m])) by (topic)", "legendFormat": "processed {{topic}}", "refId": "B" }
+      ],
+      "title": "Consumer Throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        { "expr": "sum(rate(recovery_kafka_producer_publish_total[1m])) by (topic, result)", "legendFormat": "{{topic}} {{result}}", "refId": "A" }
+      ],
+      "title": "Producer Publish Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(recovery_kafka_processing_duration_ms_bucket[5m])) by (le, topic, outcome))", "legendFormat": "{{topic}} {{outcome}}", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(recovery_kafka_publish_duration_ms_bucket[5m])) by (le, topic, result))", "legendFormat": "publish {{topic}} {{result}}", "refId": "B" }
+      ],
+      "title": "Kafka Processing And Publish P95",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["recovery", "kafka"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "title": "Kafka Health",
+  "uid": "kafka-health",
+  "version": 1
+}

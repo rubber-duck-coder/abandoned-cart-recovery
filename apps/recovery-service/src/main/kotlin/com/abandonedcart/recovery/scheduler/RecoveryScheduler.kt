@@ -8,6 +8,8 @@ import com.abandonedcart.recovery.policy.RecoveryPolicyService
 import com.abandonedcart.recovery.repository.CartRecoveryStateRepository
 import com.abandonedcart.recovery.repository.RecoveryAttempt
 import com.abandonedcart.recovery.repository.RecoveryAttemptRepository
+import com.abandonedcart.recovery.telemetry.NoOpRecoveryMetrics
+import com.abandonedcart.recovery.telemetry.RecoveryMetrics
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -18,16 +20,25 @@ class RecoveryScheduler(
     private val recoveryAttemptRepository: RecoveryAttemptRepository,
     private val recoveryPolicyService: RecoveryPolicyService,
     private val analyticsPublisher: AnalyticsPublisher,
+    private val recoveryMetrics: RecoveryMetrics = NoOpRecoveryMetrics,
 ) {
     private val logger = LoggerFactory.getLogger(RecoveryScheduler::class.java)
 
     fun schedule(event: CartAbandonedEvent): Int {
+        val startedAt = System.nanoTime()
+        var outcome = "scheduled"
         val state = cartRecoveryStateRepository.findByCartId(event.cartId)
         if (state == null) {
+            outcome = "missing_state"
+            recoveryMetrics.recordSchedulerOutcome(outcome)
+            recoveryMetrics.recordStageDuration("scheduler", outcome, elapsedMs(startedAt))
             logger.warn("Skipping abandoned cart without recovery state cartId={}", event.cartId)
             return 0
         }
         if (state.cartStatus in TERMINAL_CART_STATUSES) {
+            outcome = "terminal_state"
+            recoveryMetrics.recordSchedulerOutcome(outcome)
+            recoveryMetrics.recordStageDuration("scheduler", outcome, elapsedMs(startedAt))
             logger.info("Skipping abandoned cart with terminal state cartId={} cartStatus={}", event.cartId, state.cartStatus)
             return 0
         }
@@ -42,7 +53,7 @@ class RecoveryScheduler(
         )
         val abandonedAt = OffsetDateTime.parse(event.abandonedAt)
 
-        return resolvedPolicy.touches.count { touch ->
+        val createdAttempts = resolvedPolicy.touches.count { touch ->
             val scheduledAt = abandonedAt.plusHours(touch.delayHours)
             val attempt = RecoveryAttempt(
                 attemptId = deterministicAttemptId(event.cartId, resolvedPolicy.policyVersion, touch.touchIndex, scheduledAt),
@@ -67,6 +78,7 @@ class RecoveryScheduler(
             )
             val created = recoveryAttemptRepository.schedule(attempt)
             if (created) {
+                recoveryMetrics.recordAttemptScheduled(attempt.channel, "created")
                 analyticsPublisher.publish(
                     AnalyticsEvent(
                         eventType = "attempt_scheduled",
@@ -84,9 +96,14 @@ class RecoveryScheduler(
                         ),
                     ),
                 )
+            } else {
+                recoveryMetrics.recordAttemptScheduled(attempt.channel, "duplicate")
             }
             created
         }
+        recoveryMetrics.recordSchedulerOutcome(outcome)
+        recoveryMetrics.recordStageDuration("scheduler", outcome, elapsedMs(startedAt))
+        return createdAttempts
     }
 
     private fun deterministicAttemptId(
@@ -102,4 +119,6 @@ class RecoveryScheduler(
     companion object {
         private val TERMINAL_CART_STATUSES = setOf("PURCHASED", "DELETED")
     }
+
+    private fun elapsedMs(startedAt: Long): Double = (System.nanoTime() - startedAt) / 1_000_000.0
 }

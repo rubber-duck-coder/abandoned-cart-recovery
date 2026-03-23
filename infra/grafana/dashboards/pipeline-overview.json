@@ -1,0 +1,62 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        { "expr": "sum(rate(recovery_kafka_events_processed_total[1m])) by (topic)", "legendFormat": "{{topic}}", "refId": "A" }
+      ],
+      "title": "Processed Events Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        { "expr": "sum(rate(recovery_state_writes_total[1m])) by (source, result)", "legendFormat": "{{source}} {{result}}", "refId": "A" }
+      ],
+      "title": "State Writes Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        { "expr": "sum(rate(recovery_attempts_scheduled_total[1m])) by (channel, result)", "legendFormat": "scheduled {{channel}} {{result}}", "refId": "A" },
+        { "expr": "sum(rate(recovery_attempts_dispatched_total[1m])) by (channel, result)", "legendFormat": "dispatched {{channel}} {{result}}", "refId": "B" },
+        { "expr": "sum(rate(recovery_attempts_executed_total[1m])) by (channel, outcome)", "legendFormat": "executed {{channel}} {{outcome}}", "refId": "C" }
+      ],
+      "title": "Attempt Lifecycle Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(recovery_stage_duration_ms_bucket[5m])) by (le, stage, outcome))", "legendFormat": "{{stage}} {{outcome}}", "refId": "A" }
+      ],
+      "title": "Stage Duration P95",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["recovery", "pipeline"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "title": "Pipeline Overview",
+  "uid": "pipeline-overview",
+  "version": 1
+}

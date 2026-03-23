@@ -2,28 +2,33 @@ package com.abandonedcart.recovery
 
 import com.abandonedcart.recovery.kafka.KafkaLoggingConsumer
 import com.abandonedcart.recovery.kafka.KafkaTopicBootstrapper
+import com.abandonedcart.recovery.telemetry.AppTelemetry
+import com.abandonedcart.recovery.telemetry.DatabaseTelemetry
+import com.abandonedcart.recovery.telemetry.RecoveryMetrics
 import com.abandonedcart.recovery.db.FlywayMigrator
+import com.abandonedcart.recovery.dispatcher.DueAttemptDispatcher
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
-import io.opentelemetry.api.OpenTelemetry
-import io.opentelemetry.api.metrics.LongCounter
-import io.opentelemetry.exporter.prometheus.PrometheusHttpServer
-import io.opentelemetry.sdk.OpenTelemetrySdk
-import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.io.Closeable
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 class RecoveryApplication @Inject constructor(
     private val config: AppConfig,
     private val flywayMigrator: FlywayMigrator,
     private val kafkaTopicBootstrapper: KafkaTopicBootstrapper,
     private val kafkaLoggingConsumer: KafkaLoggingConsumer,
+    private val dueAttemptDispatcher: DueAttemptDispatcher,
+    private val appTelemetry: AppTelemetry,
+    private val recoveryMetrics: RecoveryMetrics,
+    @Suppress("unused")
+    private val databaseTelemetry: DatabaseTelemetry,
 ) {
     private val logger = LoggerFactory.getLogger(RecoveryApplication::class.java)
     private val shutdownLatch = CountDownLatch(1)
@@ -31,17 +36,7 @@ class RecoveryApplication @Inject constructor(
     fun start() {
         val migrationsApplied = flywayMigrator.migrate()
         val kafkaTopicsCreated = kafkaTopicBootstrapper.ensureTopics()
-        val metricReader = PrometheusHttpServer.builder()
-            .setHost(config.metricsHost)
-            .setPort(config.metricsPort)
-            .build()
-        val meterProvider = SdkMeterProvider.builder()
-            .registerMetricReader(metricReader)
-            .build()
-        val openTelemetry = OpenTelemetrySdk.builder()
-            .setMeterProvider(meterProvider)
-            .build()
-        val startupCounter = startupCounter(openTelemetry)
+        val dispatcherExecutor = startDispatcherLoop()
 
         val server = HttpServer.create(InetSocketAddress(config.appHost, config.appPort), 0).apply {
             createContext("/", TextHandler("abandoned-cart-recovery"))
@@ -54,15 +49,15 @@ class RecoveryApplication @Inject constructor(
                 logger.info("Shutting down recovery-service")
                 server.stop(0)
                 kafkaLoggingConsumer.close()
-                closeQuietly(metricReader)
-                closeQuietly(meterProvider)
+                dispatcherExecutor?.shutdownNow()
+                closeQuietly(appTelemetry)
                 shutdownLatch.countDown()
             },
         )
 
         server.start()
         kafkaLoggingConsumer.start()
-        startupCounter.add(1)
+        recoveryMetrics.recordServiceStart()
         logger.info(
             "recovery-service started http={}://{}:{} metrics={}://{}:{} kafka={} postgres={} migrationsApplied={} kafkaTopicsCreated={}",
             "http",
@@ -80,12 +75,30 @@ class RecoveryApplication @Inject constructor(
         shutdownLatch.await()
     }
 
-    private fun startupCounter(openTelemetry: OpenTelemetry): LongCounter {
-        return openTelemetry
-            .getMeter("recovery-service")
-            .counterBuilder("recovery_service_startups_total")
-            .setDescription("Number of recovery service starts")
-            .build()
+    private fun startDispatcherLoop(): ScheduledExecutorService? {
+        if (!config.dispatcherEnabled) {
+            logger.info("Due-attempt dispatcher loop disabled")
+            return null
+        }
+        val executor = Executors.newSingleThreadScheduledExecutor()
+        executor.scheduleWithFixedDelay(
+            {
+                try {
+                    dueAttemptDispatcher.dispatchDueAttempts(limit = config.dispatcherBatchSize)
+                } catch (error: Exception) {
+                    logger.error("Due-attempt dispatcher loop failed", error)
+                }
+            },
+            0L,
+            config.dispatcherPollIntervalMs,
+            TimeUnit.MILLISECONDS,
+        )
+        logger.info(
+            "Due-attempt dispatcher loop started pollIntervalMs={} batchSize={}",
+            config.dispatcherPollIntervalMs,
+            config.dispatcherBatchSize,
+        )
+        return executor
     }
 
     private fun closeQuietly(closeable: Any) {

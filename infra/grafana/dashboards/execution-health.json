@@ -1,0 +1,61 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        { "expr": "sum(rate(recovery_attempts_executed_total[1m])) by (channel, outcome)", "legendFormat": "{{channel}} {{outcome}}", "refId": "A" }
+      ],
+      "title": "Execution Outcomes Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        { "expr": "sum(rate(recovery_analytics_events_published_total[1m])) by (event_type, result)", "legendFormat": "{{event_type}} {{result}}", "refId": "A" }
+      ],
+      "title": "Analytics Publish Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        { "expr": "sum(rate(recovery_scheduler_outcomes_total[1m])) by (outcome)", "legendFormat": "{{outcome}}", "refId": "A" },
+        { "expr": "sum(rate(recovery_attempts_dispatched_total[1m])) by (channel, result)", "legendFormat": "dispatch {{channel}} {{result}}", "refId": "B" }
+      ],
+      "title": "Scheduling And Dispatch Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(recovery_stage_duration_ms_bucket{stage=~\"scheduler|dispatcher|executor\"}[5m])) by (le, stage, outcome))", "legendFormat": "{{stage}} {{outcome}}", "refId": "A" }
+      ],
+      "title": "Scheduler, Dispatcher, Executor P95",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["recovery", "execution"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "title": "Execution Health",
+  "uid": "execution-health",
+  "version": 1
+}

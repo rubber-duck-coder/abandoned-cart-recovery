@@ -10,6 +10,8 @@ import com.abandonedcart.recovery.executor.DueAttemptExecutor
 import com.abandonedcart.recovery.processor.CartMutationProcessor
 import com.abandonedcart.recovery.processor.CartStateEventProcessor
 import com.abandonedcart.recovery.scheduler.RecoveryScheduler
+import com.abandonedcart.recovery.telemetry.NoOpRecoveryMetrics
+import com.abandonedcart.recovery.telemetry.RecoveryMetrics
 import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -26,6 +28,7 @@ class KafkaLoggingConsumer(
     private val cartStateEventProcessor: CartStateEventProcessor,
     private val recoveryScheduler: RecoveryScheduler,
     private val dueAttemptExecutor: DueAttemptExecutor,
+    private val recoveryMetrics: RecoveryMetrics = NoOpRecoveryMetrics,
 ) : AutoCloseable {
     private val logger = LoggerFactory.getLogger(KafkaLoggingConsumer::class.java)
     private val running = AtomicBoolean(false)
@@ -66,39 +69,63 @@ class KafkaLoggingConsumer(
     }
 
     private fun handleRecord(record: ConsumerRecord<String, String>) {
+        val startedAt = System.nanoTime()
+        recoveryMetrics.recordKafkaConsumed(record.topic())
+        var outcome = "success"
         logger.info(
             "Kafka message topic={} key={} value={}",
             record.topic(),
             record.key(),
             record.value(),
         )
-        when (record.topic()) {
-            config.commerceCartEventsTopic -> routeCommerceEvent(record)
-            config.recoveryCartMutationsTopic -> {
-                val event = jsonCodec.fromJson<CartMutationEvent>(record.value())
-                cartMutationProcessor.process(event)
+        try {
+            when (record.topic()) {
+                config.commerceCartEventsTopic -> routeCommerceEvent(record)
+                config.recoveryCartMutationsTopic -> {
+                    val event = jsonCodec.fromJson<CartMutationEvent>(record.value())
+                    cartMutationProcessor.process(event)
+                }
+                config.recoveryCartStateEventsTopic -> {
+                    val event = jsonCodec.fromJson<CartStateEvent>(record.value())
+                    cartStateEventProcessor.process(event)
+                }
+                config.recoveryCartAbandonedTopic -> {
+                    val event = jsonCodec.fromJson<CartAbandonedEvent>(record.value())
+                    recoveryScheduler.schedule(event)
+                }
+                config.recoveryAttemptsTopic -> {
+                    val event = jsonCodec.fromJson<RecoveryAttemptDueEvent>(record.value())
+                    dueAttemptExecutor.execute(event)
+                }
+                else -> {
+                    outcome = "ignored"
+                }
             }
-            config.recoveryCartStateEventsTopic -> {
-                val event = jsonCodec.fromJson<CartStateEvent>(record.value())
-                cartStateEventProcessor.process(event)
-            }
-            config.recoveryCartAbandonedTopic -> {
-                val event = jsonCodec.fromJson<CartAbandonedEvent>(record.value())
-                recoveryScheduler.schedule(event)
-            }
-            config.recoveryAttemptsTopic -> {
-                val event = jsonCodec.fromJson<RecoveryAttemptDueEvent>(record.value())
-                dueAttemptExecutor.execute(event)
-            }
+        } catch (error: Exception) {
+            outcome = "error"
+            throw error
+        } finally {
+            recoveryMetrics.recordKafkaProcessed(record.topic(), outcome, elapsedMs(startedAt))
         }
     }
 
     private fun routeCommerceEvent(record: ConsumerRecord<String, String>) {
         val node = jsonCodec.objectMapper.readTree(record.value())
         when {
-            node.has("mutationType") -> producer.publishRawJson(config.recoveryCartMutationsTopic, record.key(), record.value())
-            node.has("stateType") -> producer.publishRawJson(config.recoveryCartStateEventsTopic, record.key(), record.value())
-            else -> logger.warn("Ignoring commerce event without mutationType/stateType key={} value={}", record.key(), record.value())
+            node.has("mutationType") -> {
+                producer.publishRawJson(config.recoveryCartMutationsTopic, record.key(), record.value())
+                recoveryMetrics.recordKafkaRouted(record.topic(), config.recoveryCartMutationsTopic, "success")
+            }
+            node.has("stateType") -> {
+                producer.publishRawJson(config.recoveryCartStateEventsTopic, record.key(), record.value())
+                recoveryMetrics.recordKafkaRouted(record.topic(), config.recoveryCartStateEventsTopic, "success")
+            }
+            else -> {
+                recoveryMetrics.recordKafkaRouted(record.topic(), "unrouted", "ignored")
+                logger.warn("Ignoring commerce event without mutationType/stateType key={} value={}", record.key(), record.value())
+            }
         }
     }
+
+    private fun elapsedMs(startedAt: Long): Double = (System.nanoTime() - startedAt) / 1_000_000.0
 }

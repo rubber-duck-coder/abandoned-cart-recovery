@@ -217,6 +217,7 @@ class RecoveryFlowE2ETest {
     }
 
     companion object {
+        private val topicSuffix = UUID.randomUUID().toString().take(8)
         private val appConfig = AppConfig.fromEnv(
             mapOf(
                 "KAFKA_BOOTSTRAP_SERVERS" to System.getenv().getOrDefault("TEST_KAFKA_BOOTSTRAP_SERVERS", "localhost:9094"),
@@ -224,6 +225,12 @@ class RecoveryFlowE2ETest {
                 "POSTGRES_JDBC_URL" to System.getenv().getOrDefault("TEST_POSTGRES_JDBC_URL", "jdbc:postgresql://localhost:5432/recovery"),
                 "POSTGRES_USER" to System.getenv().getOrDefault("TEST_POSTGRES_USER", "recovery"),
                 "POSTGRES_PASSWORD" to System.getenv().getOrDefault("TEST_POSTGRES_PASSWORD", "recovery"),
+                "TOPIC_COMMERCE_CART_EVENTS" to "test.$topicSuffix.commerce.cart-events",
+                "TOPIC_RECOVERY_CART_MUTATIONS" to "test.$topicSuffix.recovery.cart-mutations",
+                "TOPIC_RECOVERY_CART_STATE_EVENTS" to "test.$topicSuffix.recovery.cart-state-events",
+                "TOPIC_RECOVERY_CART_ABANDONED" to "test.$topicSuffix.recovery.cart-abandoned",
+                "TOPIC_RECOVERY_ATTEMPTS" to "test.$topicSuffix.recovery.recovery-attempts",
+                "TOPIC_RECOVERY_ANALYTICS" to "test.$topicSuffix.recovery.analytics-events",
             ),
         )
         private val jsonCodec = JsonCodec()

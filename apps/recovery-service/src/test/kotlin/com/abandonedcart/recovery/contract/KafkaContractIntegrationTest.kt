@@ -11,10 +11,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class KafkaContractIntegrationTest {
+    private val topicSuffix = UUID.randomUUID().toString().take(8)
     private val appConfig = AppConfig.fromEnv(
         mapOf(
             "KAFKA_BOOTSTRAP_SERVERS" to System.getenv().getOrDefault("TEST_KAFKA_BOOTSTRAP_SERVERS", "localhost:9094"),
             "KAFKA_CONSUMER_GROUP_ID" to "contract-test-${UUID.randomUUID()}",
+            "TOPIC_COMMERCE_CART_EVENTS" to "test.$topicSuffix.commerce.cart-events",
+            "TOPIC_RECOVERY_CART_MUTATIONS" to "test.$topicSuffix.recovery.cart-mutations",
+            "TOPIC_RECOVERY_CART_STATE_EVENTS" to "test.$topicSuffix.recovery.cart-state-events",
+            "TOPIC_RECOVERY_CART_ABANDONED" to "test.$topicSuffix.recovery.cart-abandoned",
+            "TOPIC_RECOVERY_ATTEMPTS" to "test.$topicSuffix.recovery.recovery-attempts",
+            "TOPIC_RECOVERY_ANALYTICS" to "test.$topicSuffix.recovery.analytics-events",
         ),
     )
     private val jsonCodec = JsonCodec()

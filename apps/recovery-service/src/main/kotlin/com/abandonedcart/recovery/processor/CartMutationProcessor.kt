@@ -4,11 +4,14 @@ import com.abandonedcart.recovery.contract.CartMutationEvent
 import com.abandonedcart.recovery.repository.CartRecoveryState
 import com.abandonedcart.recovery.repository.CartRecoveryStateRepository
 import com.abandonedcart.recovery.repository.CartRecoveryStateWriteResult
+import com.abandonedcart.recovery.telemetry.NoOpRecoveryMetrics
+import com.abandonedcart.recovery.telemetry.RecoveryMetrics
 import java.time.OffsetDateTime
 import org.slf4j.LoggerFactory
 
 class CartMutationProcessor(
     private val repository: CartRecoveryStateRepository,
+    private val recoveryMetrics: RecoveryMetrics = NoOpRecoveryMetrics,
 ) {
     private val logger = LoggerFactory.getLogger(CartMutationProcessor::class.java)
 
@@ -33,10 +36,10 @@ class CartMutationProcessor(
             updatedAt = existing?.updatedAt,
         )
         val result = repository.upsert(state)
+        recoveryMetrics.recordStateWrite("mutation", result.name.lowercase())
         logger.info("Processed cart mutation cartId={} mutationType={} writeResult={}", event.cartId, event.mutationType, result)
         return result
     }
 
     private fun parseOffsetDateTime(value: String): OffsetDateTime = OffsetDateTime.parse(value)
 }
-

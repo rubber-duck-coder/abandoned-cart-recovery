@@ -17,6 +17,9 @@ data class AppConfig(
     val postgresUser: String,
     val postgresPassword: String,
     val postgresPoolSize: Int,
+    val dispatcherEnabled: Boolean,
+    val dispatcherPollIntervalMs: Long,
+    val dispatcherBatchSize: Int,
 ) {
     fun allKafkaTopics(): List<String> {
         return listOf(
@@ -48,6 +51,9 @@ data class AppConfig(
                 postgresUser = env.getOrDefault("POSTGRES_USER", "recovery"),
                 postgresPassword = env.getOrDefault("POSTGRES_PASSWORD", "recovery"),
                 postgresPoolSize = env.getOrDefault("POSTGRES_POOL_SIZE", "5").toInt(),
+                dispatcherEnabled = env.getOrDefault("DISPATCHER_ENABLED", "true").toBoolean(),
+                dispatcherPollIntervalMs = env.getOrDefault("DISPATCHER_POLL_INTERVAL_MS", "1000").toLong(),
+                dispatcherBatchSize = env.getOrDefault("DISPATCHER_BATCH_SIZE", "50").toInt(),
             )
         }
     }

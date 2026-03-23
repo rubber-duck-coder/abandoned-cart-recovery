@@ -2,6 +2,8 @@
 
 Monorepo for the abandoned cart recovery prototype.
 
+See [load-testing.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/runbooks/load-testing.md) for the local hardening and load-test workflow.
+
 ## Layout
 
 - `apps/recovery-service`: Kotlin service scaffold
@@ -84,3 +86,12 @@ Useful endpoints:
 - `http://localhost:8080/health`
 - `http://localhost:9464/metrics`
 - `http://localhost:9090`
+- `http://localhost:3000` (`admin` / `admin`)
+
+Grafana provisions a starter dashboard pack automatically:
+
+- `Pipeline Overview`
+- `Kafka Health`
+- `Database Health`
+- `Execution Health`
+- `Resource View`
