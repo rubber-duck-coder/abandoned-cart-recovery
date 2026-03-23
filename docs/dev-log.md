@@ -2165,6 +2165,29 @@ The scope of this checkpoint is documentation only.
 ---
 
 ---
+Timestamp: 2026-03-23 15:14 local
+
+User Request:
+Commit and push the milestone assessment updates.
+
+Codex Plan:
+- Record the published assessment checkpoint with the resulting commit and push status.
+- Keep the append-only development log aligned with repository history before pausing.
+- Preserve clarity on what remains versus what is already complete.
+
+Actions Taken:
+- Created commit `42d8843` with the milestone assessment updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The milestone assessment checkpoint is published on `origin/main` in commit `42d8843`. The execution plan now explicitly marks `M1` through `M7` as completed and `M8` and `M9` as mostly completed with a short residual gap list.
+
+Notes:
+This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
 Timestamp: 2026-03-23 15:09 local
 
 User Request:
