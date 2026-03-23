@@ -1971,3 +1971,74 @@ The executor checkpoint is published on `origin/main` in commit `97ab61a`. The s
 Notes:
 This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
 ---
+
+---
+Timestamp: 2026-03-23 15:01 local
+
+User Request:
+Continue implementation after the pushed executor checkpoint.
+
+Codex Plan:
+- Extend the executor path to cover the remaining high-signal outcomes: frequency-cap denial and provider failure.
+- Add stronger automated assertions for emitted analytics so execution outcomes are not only persisted but also observable.
+- Keep the changes narrow and test-driven rather than introducing new runtime components.
+
+Actions Taken:
+- Read the current executor implementation in `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/executor/DueAttemptExecutor.kt`.
+- Read `AGENTS.md` and `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the next execution-outcome slice is recorded. No code has been changed yet in this pass.
+
+Notes:
+The main missing behaviors are `FAILED` outcome handling, explicit frequency-cap suppression coverage, and analytics assertions for scheduling and execution events.
+---
+
+---
+Timestamp: 2026-03-23 15:03 local
+
+User Request:
+Continue implementation after the pushed executor checkpoint.
+
+Codex Plan:
+- Add deterministic mock branches for frequency-cap denial and provider failure.
+- Extend integration coverage to assert both persisted outcomes and emitted analytics for send, suppression, and failure cases.
+- Keep runtime wiring unchanged and validate with the standard build path.
+
+Actions Taken:
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/frequencycap/MockFrequencyCapClient.kt`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/notification/MockNotificationSender.kt`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/executor/DueAttemptExecutor.kt`.
+- Updated `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/processor/KafkaStateIngestionIntegrationTest.kt`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+
+Outcome:
+The next execution-outcome slice is implemented locally and the build passed. The executor now records `FAILED` on provider errors, suppresses attempts on mock frequency-cap denial, and the Kafka integration suite now asserts analytics for `attempt_sent`, `attempt_suppressed`, and `attempt_failed`.
+
+Notes:
+The mock behaviors are intentionally deterministic via `templateKey` so the scenarios remain easy to trigger in tests without adding more config machinery. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 15:03 local
+
+User Request:
+Commit and push the validated execution-outcome checkpoint when it makes sense.
+
+Codex Plan:
+- Stage the executor, mock dependency, integration-test, and dev-log changes for this checkpoint.
+- Exclude the unrelated untracked file `excalidraw.log`.
+- Create a commit for the richer outcome coverage and push `main` to `origin`.
+
+Actions Taken:
+- Inspected the current working tree with `git status --short`.
+- Reviewed the pending diff summary with `git diff --stat`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the execution-outcome checkpoint publish is recorded. The changes remain local at this point.
+
+Notes:
+This checkpoint is still within the mock-based MVP scope; it improves outcome breadth and observability rather than changing architecture.
+---

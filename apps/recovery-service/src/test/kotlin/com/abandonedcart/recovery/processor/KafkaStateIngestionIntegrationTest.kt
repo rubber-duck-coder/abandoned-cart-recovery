@@ -153,17 +153,30 @@ class KafkaStateIngestionIntegrationTest {
             cartId = cartId,
             scheduledAt = OffsetDateTime.now().minusMinutes(2),
         )
+        val analyticsConsumer = KafkaClientFactory.createStringConsumer(appConfig, "analytics-send-test-${UUID.randomUUID()}")
 
         assertEquals(CartRecoveryStateWriteResult.APPLIED, repository.upsert(activeState))
         assertTrue(recoveryAttemptRepository.schedule(attempt))
 
-        dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+        analyticsConsumer.subscribe(listOf(appConfig.recoveryAnalyticsEventsTopic))
+        analyticsConsumer.poll(Duration.ofMillis(250))
 
-        val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SENT")
-        assertNotNull(stored)
-        assertEquals("SENT", stored.status)
-        assertEquals("ALLOWED", stored.frequencyCapResult)
-        assertTrue(stored.providerResultJson?.contains("mock") == true)
+        try {
+            dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+
+            val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SENT")
+            assertNotNull(stored)
+            assertEquals("SENT", stored.status)
+            assertEquals("ALLOWED", stored.frequencyCapResult)
+            assertTrue(stored.providerResultJson?.contains("mock") == true)
+
+            val analyticsEvent = waitForAnalyticsEvent(analyticsConsumer, cartId, "attempt_sent")
+            assertNotNull(analyticsEvent)
+            assertEquals("attempt_sent", analyticsEvent.eventType)
+            assertEquals(attempt.attemptId, analyticsEvent.attemptId)
+        } finally {
+            analyticsConsumer.close()
+        }
     }
 
     @Test
@@ -180,16 +193,99 @@ class KafkaStateIngestionIntegrationTest {
             cartId = cartId,
             scheduledAt = OffsetDateTime.now().minusMinutes(2),
         )
+        val analyticsConsumer = KafkaClientFactory.createStringConsumer(appConfig, "analytics-suppress-test-${UUID.randomUUID()}")
 
         assertEquals(CartRecoveryStateWriteResult.APPLIED, repository.upsert(purchasedState))
         assertTrue(recoveryAttemptRepository.schedule(attempt))
 
-        dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+        analyticsConsumer.subscribe(listOf(appConfig.recoveryAnalyticsEventsTopic))
+        analyticsConsumer.poll(Duration.ofMillis(250))
 
-        val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SUPPRESSED")
-        assertNotNull(stored)
-        assertEquals("SUPPRESSED", stored.status)
-        assertEquals("cart_purchased", stored.suppressionReason)
+        try {
+            dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+
+            val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SUPPRESSED")
+            assertNotNull(stored)
+            assertEquals("SUPPRESSED", stored.status)
+            assertEquals("cart_purchased", stored.suppressionReason)
+
+            val analyticsEvent = waitForAnalyticsEvent(analyticsConsumer, cartId, "attempt_suppressed")
+            assertNotNull(analyticsEvent)
+            assertEquals("attempt_suppressed", analyticsEvent.eventType)
+            assertEquals("cart_purchased", analyticsEvent.attributes["reason"])
+        } finally {
+            analyticsConsumer.close()
+        }
+    }
+
+    @Test
+    fun `due attempt is suppressed by frequency cap`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val activeState = sampleCartState(cartId = cartId, cartStatus = "ACTIVE", stateVersion = 1)
+        val attempt = sampleAttempt(
+            attemptId = "attempt-${UUID.randomUUID()}",
+            cartId = cartId,
+            scheduledAt = OffsetDateTime.now().minusMinutes(2),
+            templateKey = "push-cap-denied",
+        )
+        val analyticsConsumer = KafkaClientFactory.createStringConsumer(appConfig, "analytics-cap-test-${UUID.randomUUID()}")
+
+        assertEquals(CartRecoveryStateWriteResult.APPLIED, repository.upsert(activeState))
+        assertTrue(recoveryAttemptRepository.schedule(attempt))
+
+        analyticsConsumer.subscribe(listOf(appConfig.recoveryAnalyticsEventsTopic))
+        analyticsConsumer.poll(Duration.ofMillis(250))
+
+        try {
+            dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+
+            val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SUPPRESSED")
+            assertNotNull(stored)
+            assertEquals("SUPPRESSED", stored.status)
+            assertEquals("DENIED", stored.frequencyCapResult)
+            assertEquals("frequency_cap_denied", stored.suppressionReason)
+
+            val analyticsEvent = waitForAnalyticsEvent(analyticsConsumer, cartId, "attempt_suppressed")
+            assertNotNull(analyticsEvent)
+            assertEquals("frequency_cap_denied", analyticsEvent.attributes["reason"])
+        } finally {
+            analyticsConsumer.close()
+        }
+    }
+
+    @Test
+    fun `due attempt is marked failed when provider send errors`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val activeState = sampleCartState(cartId = cartId, cartStatus = "ACTIVE", stateVersion = 1)
+        val attempt = sampleAttempt(
+            attemptId = "attempt-${UUID.randomUUID()}",
+            cartId = cartId,
+            scheduledAt = OffsetDateTime.now().minusMinutes(2),
+            templateKey = "push-provider-fail",
+        )
+        val analyticsConsumer = KafkaClientFactory.createStringConsumer(appConfig, "analytics-fail-test-${UUID.randomUUID()}")
+
+        assertEquals(CartRecoveryStateWriteResult.APPLIED, repository.upsert(activeState))
+        assertTrue(recoveryAttemptRepository.schedule(attempt))
+
+        analyticsConsumer.subscribe(listOf(appConfig.recoveryAnalyticsEventsTopic))
+        analyticsConsumer.poll(Duration.ofMillis(250))
+
+        try {
+            dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+
+            val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "FAILED")
+            assertNotNull(stored)
+            assertEquals("FAILED", stored.status)
+            assertEquals("ALLOWED", stored.frequencyCapResult)
+            assertTrue(stored.providerResultJson?.contains("mock_provider_failure") == true)
+
+            val analyticsEvent = waitForAnalyticsEvent(analyticsConsumer, cartId, "attempt_failed")
+            assertNotNull(analyticsEvent)
+            assertEquals("mock_provider_failure", analyticsEvent.attributes["reason"])
+        } finally {
+            analyticsConsumer.close()
+        }
     }
 
     @BeforeEach
@@ -251,6 +347,24 @@ class KafkaStateIngestionIntegrationTest {
             }
         }
         return events
+    }
+
+    private fun waitForAnalyticsEvent(
+        consumer: org.apache.kafka.clients.consumer.Consumer<String, String>,
+        cartId: String,
+        eventType: String,
+    ): AnalyticsEvent? {
+        repeat(20) {
+            val records = consumer.poll(Duration.ofMillis(500))
+            val event = records
+                .filter { it.key() == cartId }
+                .map { jsonCodec.fromJson<AnalyticsEvent>(it.value()) }
+                .firstOrNull { it.eventType == eventType }
+            if (event != null) {
+                return event
+            }
+        }
+        return null
     }
 
     companion object {
@@ -350,6 +464,7 @@ class KafkaStateIngestionIntegrationTest {
             attemptId: String,
             cartId: String,
             scheduledAt: OffsetDateTime,
+            templateKey: String = "push-default",
         ): RecoveryAttempt {
             return RecoveryAttempt(
                 attemptId = attemptId,
@@ -365,7 +480,7 @@ class KafkaStateIngestionIntegrationTest {
                 scheduledAt = scheduledAt,
                 executedAt = null,
                 channel = "push",
-                templateKey = "push-default",
+                templateKey = templateKey,
                 status = "SCHEDULED",
                 suppressionReason = null,
                 sendIdempotencyKey = "send-$attemptId",

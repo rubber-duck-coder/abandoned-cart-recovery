@@ -70,25 +70,46 @@ class DueAttemptExecutor(
             return true
         }
 
-        val sendResult = notificationSender.send(attempt)
-        recoveryAttemptRepository.updateExecutionOutcome(
-            attemptId = attempt.attemptId,
-            status = "SENT",
-            executedAt = now,
-            suppressionReason = null,
-            frequencyCapResult = "ALLOWED",
-            providerResultJson = sendResult.payloadJson,
-        )
-        analyticsPublisher.publish(
-            AnalyticsEvent(
-                eventType = "attempt_sent",
-                cartId = attempt.cartId,
+        try {
+            val sendResult = notificationSender.send(attempt)
+            recoveryAttemptRepository.updateExecutionOutcome(
                 attemptId = attempt.attemptId,
-                channel = attempt.channel,
-                occurredAt = now.toString(),
-                attributes = mapOf("provider_message_id" to sendResult.providerMessageId),
-            ),
-        )
+                status = "SENT",
+                executedAt = now,
+                suppressionReason = null,
+                frequencyCapResult = "ALLOWED",
+                providerResultJson = sendResult.payloadJson,
+            )
+            analyticsPublisher.publish(
+                AnalyticsEvent(
+                    eventType = "attempt_sent",
+                    cartId = attempt.cartId,
+                    attemptId = attempt.attemptId,
+                    channel = attempt.channel,
+                    occurredAt = now.toString(),
+                    attributes = mapOf("provider_message_id" to sendResult.providerMessageId),
+                ),
+            )
+        } catch (error: Exception) {
+            recoveryAttemptRepository.updateExecutionOutcome(
+                attemptId = attempt.attemptId,
+                status = "FAILED",
+                executedAt = now,
+                suppressionReason = null,
+                frequencyCapResult = "ALLOWED",
+                providerResultJson = """{"error":"${error.message ?: "unknown"}"}""",
+            )
+            analyticsPublisher.publish(
+                AnalyticsEvent(
+                    eventType = "attempt_failed",
+                    cartId = attempt.cartId,
+                    attemptId = attempt.attemptId,
+                    channel = attempt.channel,
+                    occurredAt = now.toString(),
+                    attributes = mapOf("reason" to (error.message ?: "unknown")),
+                ),
+            )
+        }
         return true
     }
 }
