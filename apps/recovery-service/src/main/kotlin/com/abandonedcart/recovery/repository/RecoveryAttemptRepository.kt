@@ -123,6 +123,42 @@ class RecoveryAttemptRepository(
         }
     }
 
+    fun claimExecution(attemptId: String, leaseDuration: Duration): RecoveryAttempt? {
+        val now = OffsetDateTime.now()
+        val leaseUntil = now.plus(leaseDuration)
+        dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            val claimed = connection.prepareStatement(
+                """
+                update recovery_attempt
+                set status = 'IN_PROGRESS',
+                    lease_until = ?,
+                    updated_at = ?
+                where attempt_id = ?
+                  and (
+                    status = 'DISPATCHED'
+                    or (status = 'IN_PROGRESS' and lease_until is not null and lease_until <= ?)
+                  )
+                returning attempt_id, cart_id, tenant_id, user_id, experiment_id, experiment_name,
+                          variant_id, policy_id, policy_version, touch_index, scheduled_at, executed_at,
+                          channel, template_key, status, suppression_reason, send_idempotency_key,
+                          frequency_cap_result, provider_result_json, lease_until, dispatched_at,
+                          created_at, updated_at
+                """.trimIndent(),
+            ).use { statement ->
+                statement.setObject(1, leaseUntil)
+                statement.setObject(2, now)
+                statement.setString(3, attemptId)
+                statement.setObject(4, now)
+                statement.executeQuery().use { resultSet ->
+                    if (resultSet.next()) resultSet.toRecoveryAttempt() else null
+                }
+            }
+            connection.commit()
+            return claimed
+        }
+    }
+
     fun findByCartId(cartId: String): List<RecoveryAttempt> {
         dataSource.connection.use { connection ->
             connection.prepareStatement(
@@ -149,6 +185,27 @@ class RecoveryAttemptRepository(
         }
     }
 
+    fun findByAttemptId(attemptId: String): RecoveryAttempt? {
+        dataSource.connection.use { connection ->
+            connection.prepareStatement(
+                """
+                select attempt_id, cart_id, tenant_id, user_id, experiment_id, experiment_name,
+                       variant_id, policy_id, policy_version, touch_index, scheduled_at, executed_at,
+                       channel, template_key, status, suppression_reason, send_idempotency_key,
+                       frequency_cap_result, provider_result_json, lease_until, dispatched_at,
+                       created_at, updated_at
+                from recovery_attempt
+                where attempt_id = ?
+                """.trimIndent(),
+            ).use { statement ->
+                statement.setString(1, attemptId)
+                statement.executeQuery().use { resultSet ->
+                    return if (resultSet.next()) resultSet.toRecoveryAttempt() else null
+                }
+            }
+        }
+    }
+
     fun updateExecutionOutcome(
         attemptId: String,
         status: String,
@@ -166,6 +223,7 @@ class RecoveryAttemptRepository(
                     suppression_reason = ?,
                     frequency_cap_result = ?,
                     provider_result_json = cast(? as jsonb),
+                    lease_until = null,
                     updated_at = ?
                 where attempt_id = ?
                 """.trimIndent(),

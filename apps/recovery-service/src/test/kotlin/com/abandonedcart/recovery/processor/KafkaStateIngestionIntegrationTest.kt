@@ -8,13 +8,19 @@ import com.abandonedcart.recovery.contract.CartMutationEvent
 import com.abandonedcart.recovery.contract.CartStateEvent
 import com.abandonedcart.recovery.contract.JsonCodec
 import com.abandonedcart.recovery.db.FlywayMigrator
+import com.abandonedcart.recovery.dispatcher.DueAttemptDispatcher
+import com.abandonedcart.recovery.eligibility.EligibilityEvaluator
+import com.abandonedcart.recovery.executor.DueAttemptExecutor
+import com.abandonedcart.recovery.frequencycap.MockFrequencyCapClient
 import com.abandonedcart.recovery.kafka.KafkaClientFactory
 import com.abandonedcart.recovery.kafka.KafkaJsonProducer
 import com.abandonedcart.recovery.kafka.KafkaLoggingConsumer
 import com.abandonedcart.recovery.kafka.KafkaTopicBootstrapper
+import com.abandonedcart.recovery.notification.MockNotificationSender
 import com.abandonedcart.recovery.policy.RecoveryPolicyService
 import com.abandonedcart.recovery.repository.CartRecoveryStateRepository
 import com.abandonedcart.recovery.repository.CartRecoveryStateWriteResult
+import com.abandonedcart.recovery.repository.RecoveryAttempt
 import com.abandonedcart.recovery.repository.RecoveryAttemptRepository
 import com.abandonedcart.recovery.scheduler.RecoveryScheduler
 import com.zaxxer.hikari.HikariConfig
@@ -138,6 +144,54 @@ class KafkaStateIngestionIntegrationTest {
         }
     }
 
+    @Test
+    fun `due attempt is sent for eligible cart`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val activeState = sampleCartState(cartId = cartId, cartStatus = "ACTIVE", stateVersion = 1)
+        val attempt = sampleAttempt(
+            attemptId = "attempt-${UUID.randomUUID()}",
+            cartId = cartId,
+            scheduledAt = OffsetDateTime.now().minusMinutes(2),
+        )
+
+        assertEquals(CartRecoveryStateWriteResult.APPLIED, repository.upsert(activeState))
+        assertTrue(recoveryAttemptRepository.schedule(attempt))
+
+        dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+
+        val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SENT")
+        assertNotNull(stored)
+        assertEquals("SENT", stored.status)
+        assertEquals("ALLOWED", stored.frequencyCapResult)
+        assertTrue(stored.providerResultJson?.contains("mock") == true)
+    }
+
+    @Test
+    fun `due attempt is suppressed for purchased cart`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val purchasedState = sampleCartState(
+            cartId = cartId,
+            cartStatus = "PURCHASED",
+            stateVersion = 2,
+            lastPurchaseAt = OffsetDateTime.now(),
+        )
+        val attempt = sampleAttempt(
+            attemptId = "attempt-${UUID.randomUUID()}",
+            cartId = cartId,
+            scheduledAt = OffsetDateTime.now().minusMinutes(2),
+        )
+
+        assertEquals(CartRecoveryStateWriteResult.APPLIED, repository.upsert(purchasedState))
+        assertTrue(recoveryAttemptRepository.schedule(attempt))
+
+        dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+
+        val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SUPPRESSED")
+        assertNotNull(stored)
+        assertEquals("SUPPRESSED", stored.status)
+        assertEquals("cart_purchased", stored.suppressionReason)
+    }
+
     @BeforeEach
     fun truncateTables() {
         dataSource.connection.use { connection ->
@@ -167,6 +221,17 @@ class KafkaStateIngestionIntegrationTest {
             Thread.sleep(250)
         }
         return recoveryAttemptRepository.findByCartId(cartId)
+    }
+
+    private fun waitForAttemptStatus(attemptId: String, expectedStatus: String): RecoveryAttempt? {
+        repeat(20) {
+            val attempt = recoveryAttemptRepository.findByAttemptId(attemptId)
+            if (attempt != null && attempt.status == expectedStatus) {
+                return attempt
+            }
+            Thread.sleep(250)
+        }
+        return recoveryAttemptRepository.findByAttemptId(attemptId)
     }
 
     private fun waitForAnalyticsEvents(
@@ -204,6 +269,7 @@ class KafkaStateIngestionIntegrationTest {
         private lateinit var recoveryAttemptRepository: RecoveryAttemptRepository
         private lateinit var kafkaProducer: KafkaJsonProducer
         private lateinit var kafkaConsumer: KafkaLoggingConsumer
+        private lateinit var dueAttemptDispatcher: DueAttemptDispatcher
 
         @JvmStatic
         @BeforeAll
@@ -225,7 +291,16 @@ class KafkaStateIngestionIntegrationTest {
             val recoveryPolicyService = RecoveryPolicyService(com.abandonedcart.recovery.experiment.MockExperimentClient())
             val analyticsPublisher = KafkaAnalyticsPublisher(appConfig, kafkaProducer)
             val recoveryScheduler = RecoveryScheduler(repository, recoveryAttemptRepository, recoveryPolicyService, analyticsPublisher)
+            val dueAttemptExecutor = DueAttemptExecutor(
+                recoveryAttemptRepository,
+                repository,
+                EligibilityEvaluator(),
+                MockFrequencyCapClient(),
+                MockNotificationSender(),
+                analyticsPublisher,
+            )
             KafkaTopicBootstrapper(appConfig).ensureTopics()
+            dueAttemptDispatcher = DueAttemptDispatcher(recoveryAttemptRepository, kafkaProducer, appConfig.recoveryAttemptsTopic)
             kafkaConsumer = KafkaLoggingConsumer(
                 appConfig,
                 jsonCodec,
@@ -233,6 +308,7 @@ class KafkaStateIngestionIntegrationTest {
                 mutationProcessor,
                 stateEventProcessor,
                 recoveryScheduler,
+                dueAttemptExecutor,
             )
             kafkaConsumer.start()
             Thread.sleep(500)
@@ -243,6 +319,59 @@ class KafkaStateIngestionIntegrationTest {
         fun afterAll() {
             kafkaConsumer.close()
             dataSource.close()
+        }
+
+        private fun sampleCartState(
+            cartId: String,
+            cartStatus: String,
+            stateVersion: Long,
+            lastPurchaseAt: OffsetDateTime? = null,
+        ): com.abandonedcart.recovery.repository.CartRecoveryState {
+            val now = OffsetDateTime.now()
+            return com.abandonedcart.recovery.repository.CartRecoveryState(
+                cartId = cartId,
+                tenantId = "tenant-1",
+                anonymousId = "anon-1",
+                userId = "user-1",
+                cartStatus = cartStatus,
+                abandonmentStatus = "ACTIVE",
+                policyId = null,
+                policyVersion = null,
+                lastCartMutationAt = now,
+                lastCriticalEventAt = now,
+                lastPurchaseAt = lastPurchaseAt,
+                stateVersion = stateVersion,
+                cartSnapshotJson = """{"items":["sku-1"]}""",
+                stitchedIdentityJson = """{"stitched":true}""",
+            )
+        }
+
+        private fun sampleAttempt(
+            attemptId: String,
+            cartId: String,
+            scheduledAt: OffsetDateTime,
+        ): RecoveryAttempt {
+            return RecoveryAttempt(
+                attemptId = attemptId,
+                cartId = cartId,
+                tenantId = "tenant-1",
+                userId = "user-1",
+                experimentId = "exp-1",
+                experimentName = "default-recovery",
+                variantId = "control",
+                policyId = "default",
+                policyVersion = 1,
+                touchIndex = 1,
+                scheduledAt = scheduledAt,
+                executedAt = null,
+                channel = "push",
+                templateKey = "push-default",
+                status = "SCHEDULED",
+                suppressionReason = null,
+                sendIdempotencyKey = "send-$attemptId",
+                frequencyCapResult = null,
+                providerResultJson = null,
+            )
         }
     }
 }

@@ -6,11 +6,17 @@ import com.abandonedcart.recovery.contract.JsonCodec
 import com.abandonedcart.recovery.db.DataSourceFactory
 import com.abandonedcart.recovery.db.FlywayMigrator
 import com.abandonedcart.recovery.dispatcher.DueAttemptDispatcher
+import com.abandonedcart.recovery.eligibility.EligibilityEvaluator
+import com.abandonedcart.recovery.executor.DueAttemptExecutor
 import com.abandonedcart.recovery.experiment.ExperimentClient
 import com.abandonedcart.recovery.experiment.MockExperimentClient
+import com.abandonedcart.recovery.frequencycap.FrequencyCapClient
+import com.abandonedcart.recovery.frequencycap.MockFrequencyCapClient
 import com.abandonedcart.recovery.kafka.KafkaJsonProducer
 import com.abandonedcart.recovery.kafka.KafkaLoggingConsumer
 import com.abandonedcart.recovery.kafka.KafkaTopicBootstrapper
+import com.abandonedcart.recovery.notification.MockNotificationSender
+import com.abandonedcart.recovery.notification.NotificationSender
 import com.abandonedcart.recovery.policy.RecoveryPolicyService
 import com.abandonedcart.recovery.processor.CartMutationProcessor
 import com.abandonedcart.recovery.processor.CartStateEventProcessor
@@ -109,6 +115,36 @@ class AppModule(
 
     @Provides
     @Singleton
+    fun provideEligibilityEvaluator(): EligibilityEvaluator = EligibilityEvaluator()
+
+    @Provides
+    @Singleton
+    fun provideFrequencyCapClient(): FrequencyCapClient = MockFrequencyCapClient()
+
+    @Provides
+    @Singleton
+    fun provideNotificationSender(): NotificationSender = MockNotificationSender()
+
+    @Provides
+    @Singleton
+    fun provideDueAttemptExecutor(
+        recoveryAttemptRepository: RecoveryAttemptRepository,
+        cartRecoveryStateRepository: CartRecoveryStateRepository,
+        eligibilityEvaluator: EligibilityEvaluator,
+        frequencyCapClient: FrequencyCapClient,
+        notificationSender: NotificationSender,
+        analyticsPublisher: AnalyticsPublisher,
+    ): DueAttemptExecutor = DueAttemptExecutor(
+        recoveryAttemptRepository,
+        cartRecoveryStateRepository,
+        eligibilityEvaluator,
+        frequencyCapClient,
+        notificationSender,
+        analyticsPublisher,
+    )
+
+    @Provides
+    @Singleton
     fun provideKafkaTopicBootstrapper(appConfig: AppConfig): KafkaTopicBootstrapper = KafkaTopicBootstrapper(appConfig)
 
     @Provides
@@ -120,6 +156,7 @@ class AppModule(
         cartMutationProcessor: CartMutationProcessor,
         cartStateEventProcessor: CartStateEventProcessor,
         recoveryScheduler: RecoveryScheduler,
+        dueAttemptExecutor: DueAttemptExecutor,
     ): KafkaLoggingConsumer = KafkaLoggingConsumer(
         appConfig,
         jsonCodec,
@@ -127,6 +164,7 @@ class AppModule(
         cartMutationProcessor,
         cartStateEventProcessor,
         recoveryScheduler,
+        dueAttemptExecutor,
     )
 
     @Provides

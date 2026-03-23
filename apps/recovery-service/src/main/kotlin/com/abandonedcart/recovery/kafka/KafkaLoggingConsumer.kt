@@ -5,6 +5,8 @@ import com.abandonedcart.recovery.contract.CartAbandonedEvent
 import com.abandonedcart.recovery.contract.CartMutationEvent
 import com.abandonedcart.recovery.contract.CartStateEvent
 import com.abandonedcart.recovery.contract.JsonCodec
+import com.abandonedcart.recovery.contract.RecoveryAttemptDueEvent
+import com.abandonedcart.recovery.executor.DueAttemptExecutor
 import com.abandonedcart.recovery.processor.CartMutationProcessor
 import com.abandonedcart.recovery.processor.CartStateEventProcessor
 import com.abandonedcart.recovery.scheduler.RecoveryScheduler
@@ -23,6 +25,7 @@ class KafkaLoggingConsumer(
     private val cartMutationProcessor: CartMutationProcessor,
     private val cartStateEventProcessor: CartStateEventProcessor,
     private val recoveryScheduler: RecoveryScheduler,
+    private val dueAttemptExecutor: DueAttemptExecutor,
 ) : AutoCloseable {
     private val logger = LoggerFactory.getLogger(KafkaLoggingConsumer::class.java)
     private val running = AtomicBoolean(false)
@@ -82,6 +85,10 @@ class KafkaLoggingConsumer(
             config.recoveryCartAbandonedTopic -> {
                 val event = jsonCodec.fromJson<CartAbandonedEvent>(record.value())
                 recoveryScheduler.schedule(event)
+            }
+            config.recoveryAttemptsTopic -> {
+                val event = jsonCodec.fromJson<RecoveryAttemptDueEvent>(record.value())
+                dueAttemptExecutor.execute(event)
             }
         }
     }

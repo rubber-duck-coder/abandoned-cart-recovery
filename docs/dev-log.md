@@ -1876,3 +1876,75 @@ Planning for the dispatcher checkpoint publish is recorded. The changes remain l
 Notes:
 This checkpoint is focused on safe due-attempt handoff, not execution outcomes.
 ---
+
+---
+Timestamp: 2026-03-23 14:54 local
+
+User Request:
+Commit and push the validated dispatcher checkpoint when it makes sense, then continue implementation.
+
+Codex Plan:
+- Record the published dispatcher checkpoint with commit and push status.
+- Start the next M7 slice around executor consumption from `recovery.recovery-attempts`.
+- Keep the first executor pass minimal: latest-state eligibility check plus mock allow/send behavior.
+
+Actions Taken:
+- Created commit `fc45e50` with the dispatcher, schema, repository, plan, and test updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication-and-next-step entry to `docs/dev-log.md`.
+
+Outcome:
+The dispatcher checkpoint is published on `origin/main` in commit `fc45e50`. The next implementation focus is executor consumption from Kafka with basic eligibility and outcome recording.
+
+Notes:
+This log entry itself is local until included in a later commit. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
+Timestamp: 2026-03-23 14:58 local
+
+User Request:
+Continue implementation after the pushed dispatcher checkpoint.
+
+Codex Plan:
+- Add the smallest executor path on top of the dispatcher: Kafka consumption, execution claim semantics, eligibility checks, and mock send behavior.
+- Reuse the existing lease model to prevent duplicate processing of due-attempt messages.
+- Verify the new path with build-backed integration coverage for both send and suppression outcomes.
+
+Actions Taken:
+- Added executor-related files under `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/eligibility`, `.../frequencycap`, `.../notification`, and `.../executor`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/RecoveryAttemptRepository.kt` with execution-claim and attempt lookup methods.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppModule.kt`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/kafka/KafkaLoggingConsumer.kt` to consume `recovery.recovery-attempts`.
+- Updated `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/processor/KafkaStateIngestionIntegrationTest.kt` with send and suppression scenarios.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+
+Outcome:
+The next M7 slice is implemented locally and the build passed. The service can now consume due-attempt Kafka work, claim execution safely, suppress attempts for terminal carts, and mark eligible attempts as sent through a mock sender.
+
+Notes:
+This slice still uses mock frequency-cap and mock notification behavior. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 14:58 local
+
+User Request:
+Commit and push the validated executor checkpoint when it makes sense.
+
+Codex Plan:
+- Stage the executor, repository, consumer, integration-test, and dev-log changes for this checkpoint.
+- Exclude the unrelated untracked file `excalidraw.log`.
+- Create a commit for the executor slice and push `main` to `origin`.
+
+Actions Taken:
+- Inspected the current working tree with `git status --short`.
+- Reviewed the pending diff summary with `git diff --stat`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the executor checkpoint publish is recorded. The executor changes remain local at this point.
+
+Notes:
+This checkpoint covers core execution flow with mock dependencies, not later hardening or richer failure handling.
+---
