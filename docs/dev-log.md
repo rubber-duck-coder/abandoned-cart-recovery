@@ -1467,3 +1467,27 @@ Planning for the M4 commit-and-push step has been recorded. The changes are stag
 Notes:
 This milestone includes Kafka-to-Postgres state ingestion plus the Docker packaging fix required for host-verifiable runtime checks.
 ---
+
+---
+Timestamp: 2026-03-23 14:29 local
+
+User Request:
+Continue execution by publishing the verified M4 state-ingestion milestone.
+
+Codex Plan:
+- Record the published M4 milestone in the append-only development log.
+- Capture the final verification signals, commit id, and push result for the implementation milestone.
+- Publish the log-only follow-up commit so repository history and the append-only log remain aligned.
+
+Actions Taken:
+- Created commit `858cbd3` with the M4 implementation and packaging updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Verified the runtime path earlier in this pass with `docker compose up --build -d recovery-service`, `docker compose logs recovery-service --tail=120`, `curl -sf http://localhost:8080/health`, and `curl -sf http://localhost:9464/metrics`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The M4 milestone is now published on `origin/main` in commit `858cbd3`. The repo contains the Kafka-to-Postgres state ingestion path, the processor integration test, and the fixed Docker packaging flow needed for host-verifiable runtime checks.
+
+Notes:
+One follow-up log-only commit is still needed to publish this entry itself. The unrelated untracked file `excalidraw.log` remains excluded.
+---
