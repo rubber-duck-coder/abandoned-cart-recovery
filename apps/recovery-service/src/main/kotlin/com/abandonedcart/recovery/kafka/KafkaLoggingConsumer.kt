@@ -1,11 +1,13 @@
 package com.abandonedcart.recovery.kafka
 
 import com.abandonedcart.recovery.AppConfig
+import com.abandonedcart.recovery.contract.CartAbandonedEvent
 import com.abandonedcart.recovery.contract.CartMutationEvent
 import com.abandonedcart.recovery.contract.CartStateEvent
 import com.abandonedcart.recovery.contract.JsonCodec
 import com.abandonedcart.recovery.processor.CartMutationProcessor
 import com.abandonedcart.recovery.processor.CartStateEventProcessor
+import com.abandonedcart.recovery.scheduler.RecoveryScheduler
 import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -20,6 +22,7 @@ class KafkaLoggingConsumer(
     private val producer: KafkaJsonProducer,
     private val cartMutationProcessor: CartMutationProcessor,
     private val cartStateEventProcessor: CartStateEventProcessor,
+    private val recoveryScheduler: RecoveryScheduler,
 ) : AutoCloseable {
     private val logger = LoggerFactory.getLogger(KafkaLoggingConsumer::class.java)
     private val running = AtomicBoolean(false)
@@ -75,6 +78,10 @@ class KafkaLoggingConsumer(
             config.recoveryCartStateEventsTopic -> {
                 val event = jsonCodec.fromJson<CartStateEvent>(record.value())
                 cartStateEventProcessor.process(event)
+            }
+            config.recoveryCartAbandonedTopic -> {
+                val event = jsonCodec.fromJson<CartAbandonedEvent>(record.value())
+                recoveryScheduler.schedule(event)
             }
         }
     }

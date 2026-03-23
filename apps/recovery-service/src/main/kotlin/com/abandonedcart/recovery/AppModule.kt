@@ -1,5 +1,7 @@
 package com.abandonedcart.recovery
 
+import com.abandonedcart.recovery.analytics.AnalyticsPublisher
+import com.abandonedcart.recovery.analytics.KafkaAnalyticsPublisher
 import com.abandonedcart.recovery.contract.JsonCodec
 import com.abandonedcart.recovery.db.DataSourceFactory
 import com.abandonedcart.recovery.db.FlywayMigrator
@@ -13,6 +15,7 @@ import com.abandonedcart.recovery.processor.CartMutationProcessor
 import com.abandonedcart.recovery.processor.CartStateEventProcessor
 import com.abandonedcart.recovery.repository.CartRecoveryStateRepository
 import com.abandonedcart.recovery.repository.RecoveryAttemptRepository
+import com.abandonedcart.recovery.scheduler.RecoveryScheduler
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import com.google.inject.Singleton
@@ -72,6 +75,27 @@ class AppModule(
 
     @Provides
     @Singleton
+    fun provideAnalyticsPublisher(
+        appConfig: AppConfig,
+        kafkaJsonProducer: KafkaJsonProducer,
+    ): AnalyticsPublisher = KafkaAnalyticsPublisher(appConfig, kafkaJsonProducer)
+
+    @Provides
+    @Singleton
+    fun provideRecoveryScheduler(
+        cartRecoveryStateRepository: CartRecoveryStateRepository,
+        recoveryAttemptRepository: RecoveryAttemptRepository,
+        recoveryPolicyService: RecoveryPolicyService,
+        analyticsPublisher: AnalyticsPublisher,
+    ): RecoveryScheduler = RecoveryScheduler(
+        cartRecoveryStateRepository,
+        recoveryAttemptRepository,
+        recoveryPolicyService,
+        analyticsPublisher,
+    )
+
+    @Provides
+    @Singleton
     fun provideKafkaTopicBootstrapper(appConfig: AppConfig): KafkaTopicBootstrapper = KafkaTopicBootstrapper(appConfig)
 
     @Provides
@@ -82,12 +106,14 @@ class AppModule(
         kafkaJsonProducer: KafkaJsonProducer,
         cartMutationProcessor: CartMutationProcessor,
         cartStateEventProcessor: CartStateEventProcessor,
+        recoveryScheduler: RecoveryScheduler,
     ): KafkaLoggingConsumer = KafkaLoggingConsumer(
         appConfig,
         jsonCodec,
         kafkaJsonProducer,
         cartMutationProcessor,
         cartStateEventProcessor,
+        recoveryScheduler,
     )
 
     @Provides

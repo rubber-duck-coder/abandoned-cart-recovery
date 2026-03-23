@@ -1658,3 +1658,76 @@ Planning for the M5 slice publish is recorded. The M5 changes remain local at th
 Notes:
 This is an incremental M5 checkpoint focused on deterministic policy resolution and experiment attribution, not the later abandoned-cart scheduling flow.
 ---
+
+---
+Timestamp: 2026-03-23 14:40 local
+
+User Request:
+Continue past the pushed M5 checkpoint into M6 scheduling work.
+
+Codex Plan:
+- Record the M5 publication result and start the smallest useful scheduler slice for `cart_abandoned`.
+- Implement abandoned-cart scheduling around the existing repositories and `RecoveryPolicyService`.
+- Add analytics emission for `attempt_scheduled` and cover the flow with tests before publishing another checkpoint.
+
+Actions Taken:
+- Created commit `99c224d` with the M5 policy-resolution slice.
+- Pushed `main` to `origin` with `git push origin main`.
+- Read `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/RecoveryAttemptRepository.kt`.
+- Read `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/contract/AnalyticsEvent.kt`.
+- Read `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/contract/RecoveryAttemptDueEvent.kt`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+The M5 policy-resolution slice is published on `origin/main` in commit `99c224d`. Planning for the first M6 scheduling pass is recorded, and no M6 code has been added yet in this pass.
+
+Notes:
+The first M6 goal is narrow: consume `recovery.cart-abandoned`, create idempotent attempts from resolved policy touches, and emit `attempt_scheduled` analytics without pulling executor logic forward.
+---
+
+---
+Timestamp: 2026-03-23 14:43 local
+
+User Request:
+Continue past the pushed M5 checkpoint into M6 scheduling work.
+
+Codex Plan:
+- Wire `recovery.cart-abandoned` into a scheduler that uses `RecoveryPolicyService`.
+- Create idempotent `recovery_attempt` rows from resolved touches and emit `attempt_scheduled` analytics.
+- Verify the end-to-end scheduling path with automated tests before publishing the checkpoint.
+
+Actions Taken:
+- Added analytics publisher files under `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/analytics`.
+- Added `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/scheduler/RecoveryScheduler.kt`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppModule.kt` to provide analytics and scheduler dependencies.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/kafka/KafkaLoggingConsumer.kt` to handle `recovery.cart-abandoned`.
+- Extended `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/processor/KafkaStateIngestionIntegrationTest.kt` with abandoned-cart scheduling and analytics assertions.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+
+Outcome:
+The first M6 scheduling slice is implemented locally. Publishing a `CartAbandonedEvent` now resolves policy, creates three idempotent scheduled attempts for the default waterfall, and emits `attempt_scheduled` analytics. The updated build and tests passed.
+
+Notes:
+This checkpoint still stops short of due-attempt execution. The next milestone should focus on executor logic, eligibility checks, and frequency-cap integration. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 14:43 local
+
+User Request:
+Push the validated M6 scheduling checkpoint.
+
+Codex Plan:
+- Stage only the scheduler, analytics, consumer, test, and dev-log changes for this checkpoint.
+- Exclude the unrelated untracked file `excalidraw.log`.
+- Create a commit for the M6 slice and push `main` to `origin`.
+
+Actions Taken:
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the M6 checkpoint publish is recorded. The scheduling changes remain local at this point.
+
+Notes:
+This checkpoint covers abandoned-cart scheduling and scheduling analytics, not executor behavior.
+---

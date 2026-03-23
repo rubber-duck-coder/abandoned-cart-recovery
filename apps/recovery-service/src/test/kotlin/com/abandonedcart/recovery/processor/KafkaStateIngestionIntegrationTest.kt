@@ -1,16 +1,25 @@
 package com.abandonedcart.recovery.processor
 
 import com.abandonedcart.recovery.AppConfig
+import com.abandonedcart.recovery.analytics.KafkaAnalyticsPublisher
+import com.abandonedcart.recovery.contract.AnalyticsEvent
+import com.abandonedcart.recovery.contract.CartAbandonedEvent
 import com.abandonedcart.recovery.contract.CartMutationEvent
 import com.abandonedcart.recovery.contract.CartStateEvent
 import com.abandonedcart.recovery.contract.JsonCodec
 import com.abandonedcart.recovery.db.FlywayMigrator
+import com.abandonedcart.recovery.kafka.KafkaClientFactory
 import com.abandonedcart.recovery.kafka.KafkaJsonProducer
 import com.abandonedcart.recovery.kafka.KafkaLoggingConsumer
 import com.abandonedcart.recovery.kafka.KafkaTopicBootstrapper
+import com.abandonedcart.recovery.policy.RecoveryPolicyService
 import com.abandonedcart.recovery.repository.CartRecoveryStateRepository
+import com.abandonedcart.recovery.repository.CartRecoveryStateWriteResult
+import com.abandonedcart.recovery.repository.RecoveryAttemptRepository
+import com.abandonedcart.recovery.scheduler.RecoveryScheduler
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import java.time.Duration
 import java.time.OffsetDateTime
 import java.util.UUID
 import kotlin.test.Test
@@ -77,6 +86,58 @@ class KafkaStateIngestionIntegrationTest {
         assertEquals(2L, state.stateVersion)
     }
 
+    @Test
+    fun `abandoned cart event creates attempts once and emits scheduling analytics`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val activeState = com.abandonedcart.recovery.repository.CartRecoveryState(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            anonymousId = "anon-1",
+            userId = "user-1",
+            cartStatus = "ACTIVE",
+            abandonmentStatus = "ACTIVE",
+            policyId = null,
+            policyVersion = null,
+            lastCartMutationAt = OffsetDateTime.now(),
+            lastCriticalEventAt = OffsetDateTime.now(),
+            lastPurchaseAt = null,
+            stateVersion = 1,
+            cartSnapshotJson = """{"items":["sku-1"]}""",
+            stitchedIdentityJson = """{"stitched":true}""",
+        )
+        val abandonedAt = OffsetDateTime.now().minusMinutes(5)
+        val event = CartAbandonedEvent(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            anonymousId = "anon-1",
+            userId = "user-1",
+            abandonedAt = abandonedAt.toString(),
+        )
+        val analyticsConsumer = KafkaClientFactory.createStringConsumer(appConfig, "analytics-test-${UUID.randomUUID()}")
+
+        assertEquals(CartRecoveryStateWriteResult.APPLIED, repository.upsert(activeState))
+
+        analyticsConsumer.subscribe(listOf(appConfig.recoveryAnalyticsEventsTopic))
+        analyticsConsumer.poll(Duration.ofMillis(250))
+
+        try {
+            kafkaProducer.publish(appConfig.recoveryCartAbandonedTopic, cartId, event)
+            kafkaProducer.publish(appConfig.recoveryCartAbandonedTopic, cartId, event)
+
+            val attempts = waitForAttempts(cartId, expectedCount = 3)
+            assertEquals(3, attempts.size)
+            assertEquals(listOf("push", "sms", "email"), attempts.map { it.channel })
+            assertTrue(attempts.all { it.experimentId != null })
+            assertTrue(attempts.all { it.variantId != null })
+
+            val analyticsEvents = waitForAnalyticsEvents(analyticsConsumer, cartId, expectedCount = 3)
+            assertEquals(3, analyticsEvents.size)
+            assertTrue(analyticsEvents.all { it.eventType == "attempt_scheduled" })
+        } finally {
+            analyticsConsumer.close()
+        }
+    }
+
     @BeforeEach
     fun truncateTables() {
         dataSource.connection.use { connection ->
@@ -97,6 +158,36 @@ class KafkaStateIngestionIntegrationTest {
         return repository.findByCartId(cartId)
     }
 
+    private fun waitForAttempts(cartId: String, expectedCount: Int): List<com.abandonedcart.recovery.repository.RecoveryAttempt> {
+        repeat(20) {
+            val attempts = recoveryAttemptRepository.findByCartId(cartId)
+            if (attempts.size == expectedCount) {
+                return attempts
+            }
+            Thread.sleep(250)
+        }
+        return recoveryAttemptRepository.findByCartId(cartId)
+    }
+
+    private fun waitForAnalyticsEvents(
+        consumer: org.apache.kafka.clients.consumer.Consumer<String, String>,
+        cartId: String,
+        expectedCount: Int,
+    ): List<AnalyticsEvent> {
+        val events = mutableListOf<AnalyticsEvent>()
+        repeat(20) {
+            val records = consumer.poll(Duration.ofMillis(500))
+            records
+                .filter { it.key() == cartId }
+                .map { jsonCodec.fromJson<AnalyticsEvent>(it.value()) }
+                .forEach { events += it }
+            if (events.size >= expectedCount) {
+                return events
+            }
+        }
+        return events
+    }
+
     companion object {
         private val appConfig = AppConfig.fromEnv(
             mapOf(
@@ -110,6 +201,7 @@ class KafkaStateIngestionIntegrationTest {
         private val jsonCodec = JsonCodec()
         private lateinit var dataSource: HikariDataSource
         private lateinit var repository: CartRecoveryStateRepository
+        private lateinit var recoveryAttemptRepository: RecoveryAttemptRepository
         private lateinit var kafkaProducer: KafkaJsonProducer
         private lateinit var kafkaConsumer: KafkaLoggingConsumer
 
@@ -126,11 +218,22 @@ class KafkaStateIngestionIntegrationTest {
             )
             FlywayMigrator(dataSource).migrate()
             repository = CartRecoveryStateRepository(dataSource)
+            recoveryAttemptRepository = RecoveryAttemptRepository(dataSource)
             kafkaProducer = KafkaJsonProducer(appConfig, jsonCodec)
             val mutationProcessor = CartMutationProcessor(repository)
             val stateEventProcessor = CartStateEventProcessor(repository)
+            val recoveryPolicyService = RecoveryPolicyService(com.abandonedcart.recovery.experiment.MockExperimentClient())
+            val analyticsPublisher = KafkaAnalyticsPublisher(appConfig, kafkaProducer)
+            val recoveryScheduler = RecoveryScheduler(repository, recoveryAttemptRepository, recoveryPolicyService, analyticsPublisher)
             KafkaTopicBootstrapper(appConfig).ensureTopics()
-            kafkaConsumer = KafkaLoggingConsumer(appConfig, jsonCodec, kafkaProducer, mutationProcessor, stateEventProcessor)
+            kafkaConsumer = KafkaLoggingConsumer(
+                appConfig,
+                jsonCodec,
+                kafkaProducer,
+                mutationProcessor,
+                stateEventProcessor,
+                recoveryScheduler,
+            )
             kafkaConsumer.start()
             Thread.sleep(500)
         }
