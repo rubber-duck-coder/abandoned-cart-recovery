@@ -1731,3 +1731,26 @@ Planning for the M6 checkpoint publish is recorded. The scheduling changes remai
 Notes:
 This checkpoint covers abandoned-cart scheduling and scheduling analytics, not executor behavior.
 ---
+
+---
+Timestamp: 2026-03-23 14:43 local
+
+User Request:
+Push the validated M6 scheduling checkpoint.
+
+Codex Plan:
+- Record the published M6 checkpoint with the resulting commit and push status.
+- Keep the append-only development log aligned with the implementation history before pausing.
+- Leave the next implementation focus clearly pointed at executor behavior.
+
+Actions Taken:
+- Created commit `8736660` with the M6 scheduling and analytics changes.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The M6 scheduling checkpoint is published on `origin/main` in commit `8736660`. The service now consumes `recovery.cart-abandoned`, creates idempotent attempts from the resolved policy waterfall, and emits scheduling analytics.
+
+Notes:
+This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
+---
