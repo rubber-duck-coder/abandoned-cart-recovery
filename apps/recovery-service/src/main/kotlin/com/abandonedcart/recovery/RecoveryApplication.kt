@@ -1,5 +1,7 @@
 package com.abandonedcart.recovery
 
+import com.abandonedcart.recovery.kafka.KafkaLoggingConsumer
+import com.abandonedcart.recovery.kafka.KafkaTopicBootstrapper
 import com.abandonedcart.recovery.db.FlywayMigrator
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
@@ -20,12 +22,15 @@ import java.util.concurrent.Executors
 class RecoveryApplication @Inject constructor(
     private val config: AppConfig,
     private val flywayMigrator: FlywayMigrator,
+    private val kafkaTopicBootstrapper: KafkaTopicBootstrapper,
+    private val kafkaLoggingConsumer: KafkaLoggingConsumer,
 ) {
     private val logger = LoggerFactory.getLogger(RecoveryApplication::class.java)
     private val shutdownLatch = CountDownLatch(1)
 
     fun start() {
         val migrationsApplied = flywayMigrator.migrate()
+        val kafkaTopicsCreated = kafkaTopicBootstrapper.ensureTopics()
         val metricReader = PrometheusHttpServer.builder()
             .setHost(config.metricsHost)
             .setPort(config.metricsPort)
@@ -48,6 +53,7 @@ class RecoveryApplication @Inject constructor(
             Thread {
                 logger.info("Shutting down recovery-service")
                 server.stop(0)
+                kafkaLoggingConsumer.close()
                 closeQuietly(metricReader)
                 closeQuietly(meterProvider)
                 shutdownLatch.countDown()
@@ -55,9 +61,10 @@ class RecoveryApplication @Inject constructor(
         )
 
         server.start()
+        kafkaLoggingConsumer.start()
         startupCounter.add(1)
         logger.info(
-            "recovery-service started http={}://{}:{} metrics={}://{}:{} kafka={} postgres={} migrationsApplied={}",
+            "recovery-service started http={}://{}:{} metrics={}://{}:{} kafka={} postgres={} migrationsApplied={} kafkaTopicsCreated={}",
             "http",
             config.appHost,
             config.appPort,
@@ -67,6 +74,7 @@ class RecoveryApplication @Inject constructor(
             config.kafkaBootstrapServers,
             config.postgresJdbcUrl,
             migrationsApplied,
+            kafkaTopicsCreated,
         )
 
         shutdownLatch.await()
@@ -81,7 +89,7 @@ class RecoveryApplication @Inject constructor(
     }
 
     private fun closeQuietly(closeable: Any) {
-        if (closeable is Closeable) {
+        if (closeable is AutoCloseable) {
             closeable.close()
         }
     }

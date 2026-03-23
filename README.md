@@ -61,6 +61,12 @@ Run the repository integration tests against the local Compose Postgres:
 GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Repository*'
 ```
 
+Run the Kafka contract and wiring tests against the local Compose Kafka broker:
+
+```bash
+GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Contract*'
+```
+
 Useful endpoints:
 
 - `http://localhost:8080/health`

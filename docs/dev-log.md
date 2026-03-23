@@ -202,6 +202,86 @@ This follow-up log entry still needs to be committed and pushed so the append-on
 ---
 
 ---
+Timestamp: 2026-03-23 13:59 local
+
+User Request:
+Proceed to the next implementation milestone after `M1` and `M2`.
+
+Codex Plan:
+- Start `M3` with the simplest possible Kafka wiring: topic bootstrap, a minimal consumer loop, and a generic JSON producer path.
+- Add lightweight JSON contract classes so the next milestones have typed payloads without introducing unnecessary complexity yet.
+- Validate the milestone with host-side Gradle tests against the local Compose Kafka and a runtime check that the service starts its Kafka wiring cleanly.
+- Record the outcome in a follow-up append-only log entry once the milestone passes.
+- Intended files to touch: `docs/dev-log.md`, `apps/recovery-service/**`, and small workflow documentation if the Kafka verification path needs to be documented.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected the current service files and execution plan with `rg --files`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for `M3` Kafka wiring has been recorded. The Kafka contract and integration changes have not been applied yet for this pass.
+
+Notes:
+This pass should prefer wiring proof over completeness: simple JSON payloads and log-based consumer verification are acceptable if they keep the path thin and testable.
+---
+
+---
+Timestamp: 2026-03-23 14:06 local
+
+User Request:
+Proceed to the next implementation milestone after `M1` and `M2`.
+
+Codex Plan:
+- Record the completed `M3` Kafka wiring milestone in a separate append-only log entry.
+- Capture the contract, topic-bootstrap, consumer, and validation work that landed.
+- Leave the repository ready for the milestone commit and push checkpoint.
+
+Actions Taken:
+- Updated `apps/recovery-service/build.gradle.kts` to add Jackson Kotlin and Kafka client dependencies.
+- Extended `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppConfig.kt` with Kafka consumer-group and topic-name configuration.
+- Added JSON contract classes in `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/contract/`.
+- Added Kafka wiring classes in `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/kafka/` for admin/bootstrap, producer, and a logging consumer.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppModule.kt` and `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/RecoveryApplication.kt` to wire Kafka startup and shutdown into the service lifecycle.
+- Added `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/contract/JsonContractTest.kt` and `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/contract/KafkaContractIntegrationTest.kt`.
+- Updated `README.md` with the Kafka contract-test verification command.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Contract*'`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+- Ran `docker compose up --build -d recovery-service`, `docker compose logs recovery-service --tail=50`, and `docker compose exec -T recovery-service /bin/sh -lc 'wget -qO- http://127.0.0.1:8080/health && echo'`.
+
+Outcome:
+`M3` is complete. The service now bootstraps the Kafka topics named in the RFC, starts a logging consumer subscribed to all prototype topics, and has a simple JSON producer path plus typed JSON contract classes for the main event families. The contract tests pass against the local Compose Kafka broker, and the rebuilt service container logs both topic subscription and a consumed JSON message from the Kafka integration test.
+
+Notes:
+This is still intentionally thin wiring. The consumer only logs messages for now, and the contract classes are simple string-oriented payloads to keep debugging easy. Richer semantics and processor logic should be added in later milestones rather than expanding this slice prematurely. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 14:06 local
+
+User Request:
+Proceed with the implementation after `M3`.
+
+Codex Plan:
+- Treat the completed Kafka wiring work as a meaningful checkpoint and commit it before moving on.
+- Stage the Kafka milestone files and append-only log updates without including unrelated files.
+- Create a milestone commit, push `main` to `origin`, and record the outcome in a follow-up log entry.
+- Intended files to touch: `docs/dev-log.md`, the Kafka-related service and README files, and git metadata for staging, commit, and push operations.
+- Expected validation: verify `git status --short`, confirm the latest commit with `git log -1 --stat --oneline`, and ensure `git push origin main` succeeds.
+
+Actions Taken:
+- Checked the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the `M3` milestone commit and push has been recorded. Staging, commit creation, and push have not been run yet for this pass.
+
+Notes:
+The unrelated untracked file `excalidraw.log` should remain excluded.
+---
+
+---
 Timestamp: 2026-03-23 13:29 local
 
 User Request:
