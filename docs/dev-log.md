@@ -2135,3 +2135,26 @@ Planning for the E2E test checkpoint publish is recorded. The new test remains l
 Notes:
 This checkpoint is focused on milestone closure through clearer end-to-end proof rather than new runtime behavior.
 ---
+
+---
+Timestamp: 2026-03-23 15:09 local
+
+User Request:
+Commit and push the validated E2E test checkpoint when it makes sense.
+
+Codex Plan:
+- Record the published E2E checkpoint with the resulting commit and push status.
+- Keep the append-only development log aligned with implementation history before pausing.
+- Leave the next step focused on milestone assessment rather than more speculative changes.
+
+Actions Taken:
+- Created commit `f7b7f7b` with the dedicated recovery flow E2E tests and dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The E2E test checkpoint is published on `origin/main` in commit `f7b7f7b`. The repository now includes dedicated end-to-end tests for both a happy-path send flow and a suppression-before-dispatch flow with analytics continuity checks.
+
+Notes:
+This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
+---
