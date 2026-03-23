@@ -200,6 +200,190 @@ The documentation updates are committed and pushed to `origin/main`. The pushed 
 Notes:
 This follow-up log entry still needs to be committed and pushed so the append-only record reflects the successful push inside the repository history. The unrelated untracked file `excalidraw.log` remains untouched.
 ---
+
+---
+Timestamp: 2026-03-23 13:32 local
+
+User Request:
+Start executing the implementation plan for the MVP prototype.
+
+Codex Plan:
+- Begin with `M1` from `docs/plans/001-mvp-prototype-implementation.md` and scaffold the smallest bootable monorepo and local runtime.
+- Add a Kotlin + Guice recovery service skeleton, basic config and logging, and a minimal health/startup path.
+- Add a Docker Compose based local stack for the service, Kafka, Postgres, and local metrics collection.
+- Validate the scaffolding with build and startup checks, then record the outcome in a follow-up log entry.
+- Intended files to touch: `docs/dev-log.md`, root Gradle files, `apps/recovery-service/**`, `infra/**`, `docker-compose.yml`, and related local run documentation.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected the repository file layout with `rg --files`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for `M1` scaffolding has been recorded. Implementation changes have not been made yet for this pass.
+
+Notes:
+This pass should stay thin: get the service and local stack booting first, even if the app only logs startup, exposes health and metrics, and does not yet process real business events.
+---
+
+---
+Timestamp: 2026-03-23 13:41 local
+
+User Request:
+Start executing the implementation plan for the MVP prototype.
+
+Codex Plan:
+- Record the completed `M1` scaffolding work in a separate append-only log entry.
+- Capture the actual files added, validation steps run, and the main issues found during bootstrap.
+- Leave the repository ready for the milestone commit and push without rewriting the planning entry.
+
+Actions Taken:
+- Added monorepo scaffolding files: `.gitignore`, `.dockerignore`, `build.gradle.kts`, `settings.gradle.kts`, `docker-compose.yml`, `infra/prometheus/prometheus.yml`, and `ui/.gitkeep`.
+- Added the recovery-service app under `apps/recovery-service/` including `build.gradle.kts`, `Dockerfile`, `simplelogger.properties`, `AppConfig.kt`, `AppModule.kt`, `Main.kt`, and `RecoveryApplication.kt`.
+- Updated `README.md` with wrapper, build, and local runtime instructions.
+- Generated the Gradle wrapper with `docker compose --profile tools run --rm build-tools gradle wrapper`.
+- Validated the build with `docker compose --profile tools run --rm build-tools gradle build`.
+- Validated the local stack with `docker compose up --build -d`, `docker compose ps`, `docker compose logs recovery-service --tail=50`, and `docker compose exec -T recovery-service /bin/sh -lc 'wget -qO- http://127.0.0.1:8080/health && echo && wget -qO- http://127.0.0.1:9464/metrics | head -n 20'`.
+
+Outcome:
+`M1` scaffolding is in place. The repository now has a monorepo structure, a bootable Kotlin + Guice recovery-service skeleton, a Compose-managed local runtime with Kafka, Postgres, and Prometheus, and a metrics endpoint exposed from the service. The recovery service starts successfully and returns `ok` on `/health` inside the container. The metrics endpoint also exposes the startup counter as expected.
+
+Notes:
+The sandbox blocks host-side `curl` connections to localhost, so health and metrics verification had to be done with `docker compose exec` from inside the service container. The host-side Gradle wrapper also cannot download distributions in this sandbox, so build validation used the Compose-managed Gradle container instead. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 13:42 local
+
+User Request:
+Figure out how to run host-side `curl localhost` and `./gradlew build` so the prototype can be verified with higher confidence.
+
+Codex Plan:
+- Isolate whether the current blockers are caused by sandbox restrictions, missing local configuration, or actual application issues.
+- Retry host-side `curl` and `./gradlew build` with the minimum needed adjustments, including escalated execution if sandbox policy is the blocker.
+- If host-side verification can be made reliable, update local workflow documentation accordingly.
+- Record the exact outcome and any remaining limitations in a follow-up append-only log entry.
+- Intended files to touch: `docs/dev-log.md`, and possibly small workflow documentation files if the verification path changes.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Checked the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the host-side verification hardening work has been recorded. The verification experiments have not been run yet for this pass.
+
+Notes:
+The most likely causes are sandbox-denied localhost access for `curl` and sandbox-blocked network access plus Gradle user-home defaults for `./gradlew build`.
+---
+
+---
+Timestamp: 2026-03-23 13:45 local
+
+User Request:
+Figure out how to run host-side `curl localhost` and `./gradlew build` so the prototype can be verified with higher confidence.
+
+Codex Plan:
+- Record the completed verification-hardening work in a separate append-only log entry.
+- Distinguish actual repository or workflow changes from sandbox-only execution constraints.
+- Capture the exact host-side commands that now verify the prototype.
+
+Actions Taken:
+- Verified host-side health with `curl -sf http://localhost:8080/health` under escalated execution.
+- Verified host-side metrics with `curl -sf http://localhost:9464/metrics | head -n 10` under escalated execution.
+- Verified host-side Gradle build with `GRADLE_USER_HOME=.gradle-home ./gradlew build` under escalated execution.
+- Updated `README.md` to add host-side verification commands and the `GRADLE_USER_HOME` fallback for restricted environments.
+- Checked the working tree with `git status --short`.
+
+Outcome:
+Both host-side verification paths work. `curl localhost` succeeds for the health and metrics endpoints, and the Gradle wrapper build succeeds from the host when `GRADLE_USER_HOME` is pointed at a writable directory in this sandbox. The remaining limitations were environmental, not application-level: localhost access was denied by the sandbox without escalation, and the default host-side Gradle path was blocked by sandbox DNS and home-directory restrictions.
+
+Notes:
+For a normal local machine outside this sandbox, the intended verification path is `./gradlew build`, `docker compose up --build -d`, `curl -sf http://localhost:8080/health`, and `curl -sf http://localhost:9464/metrics | head -n 10`. In constrained environments, `GRADLE_USER_HOME=.gradle-home ./gradlew build` is the safer fallback. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 13:45 local
+
+User Request:
+Keep going with implementation after verification hardening.
+
+Codex Plan:
+- Start `M2` by adding the smallest useful Postgres schema and repository layer for `cart_recovery_state` and `recovery_attempt`.
+- Wire database access, migrations, and repository classes into the existing Kotlin service scaffold without adding unnecessary abstractions yet.
+- Add focused repository tests that prove migrations apply and core persistence flows work.
+- Validate the milestone with a host-side Gradle build and targeted tests, then record the outcome in a follow-up log entry.
+- Intended files to touch: `docs/dev-log.md`, `apps/recovery-service/**`, and small local workflow files if the storage slice needs them.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Inspected the current scaffold and relevant docs with `rg --files`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for `M2` storage work has been recorded. The schema and repository changes have not been applied yet for this pass.
+
+Notes:
+This pass should stay thin: migrations, connection wiring, and a small repository surface are enough. More complete state-transition logic belongs in `M4`.
+---
+
+---
+Timestamp: 2026-03-23 13:56 local
+
+User Request:
+Keep going with implementation after verification hardening.
+
+Codex Plan:
+- Record the completed `M2` storage milestone in a separate append-only log entry.
+- Capture the schema, repository, and validation work that landed, plus the main environment-related test adjustment.
+- Leave the repository ready for the milestone commit and push checkpoint.
+
+Actions Taken:
+- Updated `apps/recovery-service/build.gradle.kts` to add HikariCP, Flyway, PostgreSQL JDBC, and JUnit dependencies.
+- Added Flyway migrations in `apps/recovery-service/src/main/resources/db/migration/V1__create_cart_recovery_state.sql` and `apps/recovery-service/src/main/resources/db/migration/V2__create_recovery_attempt.sql`.
+- Added database wiring in `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/db/DataSourceFactory.kt` and `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/db/FlywayMigrator.kt`.
+- Added repository models and logic in `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/CartRecoveryState.kt`, `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/CartRecoveryStateRepository.kt`, `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/RecoveryAttempt.kt`, `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/RecoveryAttemptRepository.kt`, and `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/repository/JdbcExtensions.kt`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppConfig.kt`, `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppModule.kt`, and `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/RecoveryApplication.kt` to wire the data source and run Flyway on startup.
+- Added repository integration tests in `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/repository/RepositoryIntegrationTest.kt`.
+- Updated `README.md` with the repository-test verification command.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Repository*'`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+- Ran `docker compose up --build -d recovery-service`, `docker compose logs recovery-service --tail=40`, and `docker compose exec -T recovery-service /bin/sh -lc 'wget -qO- http://127.0.0.1:8080/health && echo'`.
+
+Outcome:
+`M2` is complete. The service now has a minimal Postgres-backed storage layer with Flyway migrations for `cart_recovery_state` and `recovery_attempt`, a direct JDBC repository layer for core reads and writes, and repository integration tests that pass against the local Compose Postgres instance. Rebuilding the service container also confirmed that Flyway runs on startup and reports the schema as up to date.
+
+Notes:
+The first repository test attempt used Testcontainers, but that was replaced with a local-Postgres test harness because the host test process could not see a valid Docker environment even though Docker Compose was available for the repo workflow. This keeps verification aligned with the existing local Compose setup. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 13:56 local
+
+User Request:
+Keep going with implementation after `M2`.
+
+Codex Plan:
+- Treat the completed `M1` and `M2` work as a meaningful checkpoint and commit it before moving on.
+- Stage the scaffold, storage, and append-only log updates without including unrelated files.
+- Create a milestone commit, push `main` to `origin`, and record the outcome in a follow-up log entry.
+- Intended files to touch: `docs/dev-log.md`, the scaffold and storage files under the repo root and `apps/recovery-service/**`, and git metadata for staging, commit, and push operations.
+- Expected validation: verify `git status --short`, confirm the latest commit with `git log -1 --stat --oneline`, and ensure `git push origin main` succeeds.
+
+Actions Taken:
+- Read `docs/dev-log.md`.
+- Checked the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the milestone commit and push has been recorded. Staging, commit creation, and push have not been run yet for this pass.
+
+Notes:
+The unrelated untracked file `excalidraw.log` should remain excluded.
+---
 Timestamp: 2026-03-23 10:11 local
 
 User Request:

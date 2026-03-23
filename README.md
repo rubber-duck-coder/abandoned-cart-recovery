@@ -1,1 +1,68 @@
 # abandoned-cart-recovery
+
+Monorepo for the abandoned cart recovery prototype.
+
+## Layout
+
+- `apps/recovery-service`: Kotlin service scaffold
+- `docs/`: RFCs, plans, and development log
+- `infra/`: local runtime assets
+- `ui/`: reserved for future UI work
+
+## Local Development
+
+Generate the Gradle wrapper:
+
+```bash
+docker compose run --rm --profile tools build-tools gradle wrapper
+```
+
+Build the recovery service:
+
+```bash
+./gradlew build
+```
+
+If your environment restricts writes to the default Gradle user home, run:
+
+```bash
+GRADLE_USER_HOME=.gradle-home ./gradlew build
+```
+
+If you prefer a Compose-managed build environment:
+
+```bash
+docker compose --profile tools run --rm build-tools gradle build
+```
+
+Start the local runtime:
+
+```bash
+docker compose up --build -d
+```
+
+## Verification
+
+Verify the service is reachable from the host:
+
+```bash
+curl -sf http://localhost:8080/health
+```
+
+Verify metrics are exposed from the host:
+
+```bash
+curl -sf http://localhost:9464/metrics | head -n 10
+```
+
+Run the repository integration tests against the local Compose Postgres:
+
+```bash
+GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Repository*'
+```
+
+Useful endpoints:
+
+- `http://localhost:8080/health`
+- `http://localhost:9464/metrics`
+- `http://localhost:9090`

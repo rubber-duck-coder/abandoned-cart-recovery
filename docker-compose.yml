@@ -1,0 +1,73 @@
+services:
+  build-tools:
+    image: gradle:8.10.2-jdk17
+    profiles: ["tools"]
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: recovery
+      POSTGRES_USER: recovery
+      POSTGRES_PASSWORD: recovery
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recovery -d recovery"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: "PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:9094"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+    ports:
+      - "9094:9094"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - recovery-service
+
+  recovery-service:
+    build:
+      context: .
+      dockerfile: apps/recovery-service/Dockerfile
+    environment:
+      APP_HOST: "0.0.0.0"
+      APP_PORT: "8080"
+      METRICS_HOST: "0.0.0.0"
+      METRICS_PORT: "9464"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      POSTGRES_JDBC_URL: "jdbc:postgresql://postgres:5432/recovery"
+      POSTGRES_USER: "recovery"
+      POSTGRES_PASSWORD: "recovery"
+    ports:
+      - "8080:8080"
+      - "9464:9464"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started

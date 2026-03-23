@@ -1,0 +1,7 @@
+.git
+.gradle
+.gradle-home
+build
+**/build
+excalidraw.log
+
