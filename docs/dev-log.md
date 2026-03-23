@@ -1562,3 +1562,99 @@ Planning for the documentation publish step and M5 kickoff is recorded. The docu
 Notes:
 The unrelated untracked file `excalidraw.log` remains excluded.
 ---
+
+---
+Timestamp: 2026-03-23 14:36 local
+
+User Request:
+Push the execution-plan refinement and continue to the next milestone.
+
+Codex Plan:
+- Record the publication of the plan refinement with the resulting commit and push status.
+- Preserve the execution trail before starting M5 implementation work.
+- Use the next pass to inspect the current codebase and wire the smallest policy-resolution slice.
+
+Actions Taken:
+- Created commit `12e771f` with the plan and dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The refined execution plan is published on `origin/main` in commit `12e771f`. The next implementation focus is M5: policy resolution and experiment attribution.
+
+Notes:
+This log entry itself is local until it is included in a later commit. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
+Timestamp: 2026-03-23 14:37 local
+
+User Request:
+Continue to the next milestone by starting M5: policy resolution and experiment attribution.
+
+Codex Plan:
+- Implement the smallest useful M5 slice: a deterministic mock experimentation client and a recovery policy service.
+- Keep the first pass local to code and unit tests rather than wiring scheduler behavior prematurely.
+- Define the resolved policy shape around the current default waterfall of `24h push`, `72h sms`, and `7d email`.
+- Add tests for deterministic assignment, returned touch configuration, and clear failure on unknown experiment input.
+
+Actions Taken:
+- Read `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppModule.kt`.
+- Read the current contract and repository shapes under `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/contract` and `.../repository`.
+- Read `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/kafka/KafkaLoggingConsumer.kt`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the first M5 implementation slice is recorded. No M5 code has been added yet in this pass.
+
+Notes:
+The intent is to keep M5 focused on deterministic policy resolution and attribution first, then let M6 consume that service for actual abandoned-cart scheduling.
+---
+
+---
+Timestamp: 2026-03-23 14:39 local
+
+User Request:
+Continue to the next milestone by starting M5: policy resolution and experiment attribution.
+
+Codex Plan:
+- Build a deterministic mock experimentation boundary and a recovery policy service around the default waterfall policy.
+- Keep the first pass narrow and verify it with unit tests and a full build.
+- Expose the service through Guice so later scheduler work can consume it directly.
+
+Actions Taken:
+- Added experiment-domain files under `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/experiment`.
+- Added policy-domain files under `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/policy`.
+- Updated `apps/recovery-service/src/main/kotlin/com/abandonedcart/recovery/AppModule.kt` to provide `ExperimentClient` and `RecoveryPolicyService`.
+- Added `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/policy/RecoveryPolicyServiceTest.kt`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+
+Outcome:
+The first M5 slice is implemented locally. The service now has a deterministic mock experimentation client, a recovery policy service that resolves `experiment_id`, `experiment_name`, `variant_id`, `policy_id`, `policy_version`, and the default `24h push / 72h sms / 7d email` touch sequence, plus unit tests covering deterministic assignment, default waterfall resolution, and unknown experiment failure.
+
+Notes:
+This slice stops short of abandoned-cart scheduling; M6 should consume `RecoveryPolicyService` rather than re-implement policy logic. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 14:39 local
+
+User Request:
+Push the validated M5 policy-resolution slice.
+
+Codex Plan:
+- Stage only the policy-service, experiment-client, test, and dev-log changes for this checkpoint.
+- Exclude the unrelated untracked file `excalidraw.log`.
+- Create a commit for the M5 slice and push `main` to `origin`.
+
+Actions Taken:
+- Inspected the current working tree with `git status --short`.
+- Reviewed the pending diff summary with `git diff --stat`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the M5 slice publish is recorded. The M5 changes remain local at this point.
+
+Notes:
+This is an incremental M5 checkpoint focused on deterministic policy resolution and experiment attribution, not the later abandoned-cart scheduling flow.
+---

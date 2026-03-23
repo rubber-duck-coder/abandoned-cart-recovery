@@ -3,9 +3,12 @@ package com.abandonedcart.recovery
 import com.abandonedcart.recovery.contract.JsonCodec
 import com.abandonedcart.recovery.db.DataSourceFactory
 import com.abandonedcart.recovery.db.FlywayMigrator
+import com.abandonedcart.recovery.experiment.ExperimentClient
+import com.abandonedcart.recovery.experiment.MockExperimentClient
 import com.abandonedcart.recovery.kafka.KafkaJsonProducer
 import com.abandonedcart.recovery.kafka.KafkaLoggingConsumer
 import com.abandonedcart.recovery.kafka.KafkaTopicBootstrapper
+import com.abandonedcart.recovery.policy.RecoveryPolicyService
 import com.abandonedcart.recovery.processor.CartMutationProcessor
 import com.abandonedcart.recovery.processor.CartStateEventProcessor
 import com.abandonedcart.recovery.repository.CartRecoveryStateRepository
@@ -57,6 +60,15 @@ class AppModule(
     @Singleton
     fun provideCartStateEventProcessor(repository: CartRecoveryStateRepository): CartStateEventProcessor =
         CartStateEventProcessor(repository)
+
+    @Provides
+    @Singleton
+    fun provideExperimentClient(): ExperimentClient = MockExperimentClient()
+
+    @Provides
+    @Singleton
+    fun provideRecoveryPolicyService(experimentClient: ExperimentClient): RecoveryPolicyService =
+        RecoveryPolicyService(experimentClient)
 
     @Provides
     @Singleton
