@@ -178,6 +178,30 @@ The unrelated untracked file `excalidraw.log` should remain excluded.
 ---
 
 ---
+Timestamp: 2026-03-23 14:07 local
+
+User Request:
+Proceed with the implementation after `M3`.
+
+Codex Plan:
+- Record the completed `M3` milestone commit and push in a separate append-only log entry.
+- Preserve the earlier planning entry and capture the exact commit and push outcome here.
+- Keep the repository clean again with one follow-up log-only commit after this entry.
+
+Actions Taken:
+- Staged the Kafka milestone files with `git add`.
+- Created commit `2df5f12` with message `Add Kafka wiring and JSON contracts`.
+- Verified the commit with `git log -1 --stat --oneline`.
+- Pushed `main` to `origin` with `git push origin main`.
+
+Outcome:
+The `M3` Kafka wiring work is now committed and pushed to `origin/main`. The pushed commit adds the minimal JSON contract layer, Kafka topic bootstrapper, Kafka logging consumer, JSON producer path, and contract tests against the local Compose Kafka broker.
+
+Notes:
+This follow-up log entry still needs to be committed and pushed so the append-only record reflects the successful `M3` push inside repository history. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
 Timestamp: 2026-03-23 13:57 local
 
 User Request:
