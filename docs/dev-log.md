@@ -2065,3 +2065,73 @@ The richer execution-outcome checkpoint is published on `origin/main` in commit 
 Notes:
 This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
 ---
+
+---
+Timestamp: 2026-03-23 15:07 local
+
+User Request:
+Continue implementation after the pushed execution-outcome checkpoint.
+
+Codex Plan:
+- Add dedicated end-to-end tests that exercise the full path from abandoned-cart input through scheduling, dispatch, execution, and analytics output.
+- Cover one happy-path send scenario and one suppression-before-execution scenario.
+- Keep the runtime code unchanged unless the tests expose a real gap, then fix the smallest issue needed and validate with the standard build path.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Read `docs/plans/001-mvp-prototype-implementation.md`.
+- Inspected the clean working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the end-to-end test slice is recorded. No code or test files have been changed yet in this pass.
+
+Notes:
+The main goal is milestone closure: prove the integrated flow clearly in dedicated E2E tests rather than relying only on broader processor integration coverage.
+---
+
+---
+Timestamp: 2026-03-23 15:09 local
+
+User Request:
+Continue implementation after the pushed execution-outcome checkpoint.
+
+Codex Plan:
+- Add dedicated E2E tests for a full happy path and a suppression-before-execution path.
+- Reuse the real Kafka, Postgres, scheduler, dispatcher, and executor chain rather than stubbing the flow.
+- Validate through the standard build path and only change runtime code if the tests expose a real defect.
+
+Actions Taken:
+- Added `apps/recovery-service/src/test/kotlin/com/abandonedcart/recovery/e2e/RecoveryFlowE2ETest.kt`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build`.
+
+Outcome:
+The dedicated E2E flow tests are implemented locally and the build passed. The suite now includes a happy path from cart activity to scheduling to send with analytics continuity, plus a purchase-before-dispatch scenario that results in suppression with matching analytics.
+
+Notes:
+No runtime code changes were needed for this slice, which is a good signal that the existing scheduler, dispatcher, and executor boundaries are holding up under fuller flow tests. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 15:09 local
+
+User Request:
+Commit and push the validated E2E test checkpoint when it makes sense.
+
+Codex Plan:
+- Stage the new E2E test and the dev-log updates for this checkpoint.
+- Exclude the unrelated untracked file `excalidraw.log`.
+- Create a commit for the end-to-end test slice and push `main` to `origin`.
+
+Actions Taken:
+- Inspected the current working tree with `git status --short`.
+- Reviewed the pending diff summary with `git diff --stat`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the E2E test checkpoint publish is recorded. The new test remains local at this point.
+
+Notes:
+This checkpoint is focused on milestone closure through clearer end-to-end proof rather than new runtime behavior.
+---
