@@ -10,6 +10,10 @@ Build an abandoned cart recovery system that can ingest high-volume cart activit
 
 The system should be designed for production scale first. A smaller MVP prototype can later implement a narrow vertical slice of this design for local demo purposes.
 
+## Related Documents
+
+- [Abandoned Cart Recovery: Data Contracts and Storage Design](./abandoned-cart-recovery-data-contracts-and-storage.md)
+
 ## Goals
 
 - Capture cart state changes in near real time.
@@ -49,6 +53,7 @@ The system should be designed for production scale first. A smaller MVP prototyp
 ### Operational
 
 - Handle bursty event traffic with at-least-once delivery assumptions.
+- Protect critical eligibility-impacting events from head-of-line blocking behind high-volume cart mutation traffic.
 - Tolerate consumer retries and downstream notification failures.
 - Make scheduling and send decisions traceable.
 - Expose health, lag, suppression, and send metrics.
@@ -56,16 +61,83 @@ The system should be designed for production scale first. A smaller MVP prototyp
 
 ## Proposed Architecture
 
+```text
++-----------------------+
+| Commerce Event Stream |
++-----------------------+
+            |
+            v
++------------------------------------+
+| Event Ingestion and Classification |
++------------------------------------+
+      |                         |
+      v                         v
++-------------------+   +---------------------+
+| Mutation Lane     |   | Critical Event Lane |
+| item add / remove |   | purchase / empty    |
++-------------------+   +---------------------+
+      \                         /
+       \                       /
+        v                     v
+      +--------------------------+
+      | Recovery State Processor |
+      +--------------------------+
+            |              |
+            v              v
++------------------+   +--------------------+
+| State Store      |   | Recovery Scheduler |
++------------------+   +--------------------+
+                               |
+                               v
+                    +-----------------------+
+                    | Recovery Attempt Store|
+                    +-----------------------+
+                               |
+                               v
+                    +-----------------------+
+                    | Recovery Executor     |
+                    +-----------------------+
+                               |
+                               v
+                    +-----------------------+
+                    | Eligibility Evaluator |
+                    +-----------------------+
+                               |
+                               v
+                    +-----------------------+
+                    | Notification Adapter  |
+                    +-----------------------+
+                               |
+                               v
+                    +-----------------------+
+                    | Email / Push / SMS    |
+                    +-----------------------+
+```
+
 ### 1. Event Ingestion Layer
 
 Consumes cart and identity events from the commerce event stream.
 
 Responsibilities:
 - Validate and normalize inbound events.
+- Classify events into high-volume mutation traffic and critical eligibility-impacting events.
 - Attach idempotency keys and event timestamps.
 - Forward normalized events to recovery processing.
 
-### 2. Recovery State Processor
+### 2. Event Processing Lanes
+
+The system should not treat all cart events with equal urgency.
+
+Approach:
+- High-volume mutation events such as `item_added` and `item_removed` can be processed through a bulk lane optimized for throughput.
+- Critical events such as `purchase_completed`, `cart_emptied`, identity-link events, and other state-invalidating signals should flow through a protected lane with dedicated capacity and stricter lag monitoring.
+- Scheduler and executor decisions should rely on current state plus critical invalidation signals, not on draining every mutation event in perfect order.
+- This reduces head-of-line blocking risk during traffic spikes while preserving send-suppression correctness.
+
+Implementation detail such as whether this is realized with separate queues, separate topics, or another prioritized transport model should live in the companion doc:
+- [Processing lanes, contracts, and storage details](./abandoned-cart-recovery-data-contracts-and-storage.md)
+
+### 3. Recovery State Processor
 
 Updates the latest cart recovery state for each cart.
 
@@ -74,7 +146,7 @@ Responsibilities:
 - Merge anonymous and known identities when stitching events arrive.
 - Detect state transitions that should create, update, or cancel recovery attempts.
 
-### 3. Recovery Policy Service
+### 4. Recovery Policy Service
 
 Provides the recovery sequence definition.
 
@@ -83,7 +155,10 @@ Responsibilities:
 - Keep cadence, channel, and template selection in configuration.
 - Start with one default policy in v1 while leaving room for future urgency tiers.
 
-### 4. Recovery Scheduler
+Detailed policy versioning and persistence should be captured in the companion doc:
+- [Policy, contract, and storage details](./abandoned-cart-recovery-data-contracts-and-storage.md)
+
+### 5. Recovery Scheduler
 
 Schedules future recovery attempts based on policy.
 
@@ -92,17 +167,34 @@ Responsibilities:
 - Ensure schedule creation is idempotent.
 - Track attempt status such as `scheduled`, `suppressed`, `sent`, `failed`, or `cancelled`.
 
-### 5. Recovery Executor
+Storage shape, uniqueness constraints, and attempt lifecycle fields should be defined in:
+- [Recovery attempt schema details](./abandoned-cart-recovery-data-contracts-and-storage.md)
+
+### 6. Recovery Executor
 
 Processes due attempts and performs the final safety interlock.
 
 Responsibilities:
 - Load the current cart state at execution time.
+- Run an extensible eligibility evaluation before send.
 - Suppress the attempt if the cart is no longer eligible.
 - Call the notification provider only after the final eligibility check passes.
 - Record the final outcome with an idempotent send key.
 
-### 6. Notification Adapter
+### 7. Eligibility Evaluator
+
+The executor should not hardcode a single pair of checks forever.
+
+Responsibilities:
+- Evaluate ordered eligibility rules before every send.
+- Start with core checks such as purchased-cart suppression and empty-cart suppression.
+- Leave room for future checks such as out-of-stock detection, user opt-out state, merchant-level send pause, or fraud-related suppression.
+- Return both a boolean decision and a structured suppression reason.
+
+The rule contract, suppression taxonomy, and state inputs for these checks should be specified in:
+- [Eligibility and suppression modeling details](./abandoned-cart-recovery-data-contracts-and-storage.md)
+
+### 8. Notification Adapter
 
 Thin integration layer over email, push, or SMS providers.
 
@@ -111,38 +203,66 @@ Responsibilities:
 - Handle provider retries and response mapping.
 - Keep provider specifics out of scheduler and state logic.
 
-## Core Data Model
+## Data Model Boundaries
 
-At a high level the system needs:
+At the architecture level, the system needs:
 
-- `cart_recovery_state`
-  - `cart_id`
-  - `user_id` or anonymous identifier
-  - current cart snapshot
-  - lifecycle status
-  - last meaningful cart event
-  - last purchase event, if any
-  - recovery policy reference
-  - updated timestamp
+- a latest-state record for each cart
+- a persisted record for each scheduled recovery attempt
+- stable idempotency keys for schedule creation and send execution
+- enough audit metadata to explain why a send happened or was suppressed
 
-- `recovery_attempt`
-  - stable attempt id
-  - `cart_id`
-  - touch number
-  - scheduled time
-  - channel
-  - template key
-  - status
-  - suppression reason or send result
+The detailed logical schema, indexing, and contract design are intentionally split into the companion doc:
+- [Data contracts and storage design](./abandoned-cart-recovery-data-contracts-and-storage.md)
 
 ## End-to-End Flow
 
+```text
+Event Stream
+    |
+    v
+Ingestion and Classification
+    |
+    +--> Mutation lane --------------------+
+    |                                      |
+    +--> Critical event lane -----------+  |
+                                         \ /
+                                          v
+                               Recovery State Processor
+                                          |
+                                          v
+                                      State Store
+                                          |
+                               abandonment detected
+                                          |
+                                          v
+                                  Recovery Scheduler
+                                          |
+                                          v
+                                  Recovery Attempt Store
+                                          |
+                                      due attempt
+                                          |
+                                          v
+                                   Recovery Executor
+                                          |
+                                          v
+                                 Eligibility Evaluator
+                                          |
+                           eligible ------+------ suppressed
+                                          |
+                                          v
+                                 Notification Adapter
+```
+
 1. Cart events are ingested and normalized.
-2. State processor updates the latest cart recovery state.
-3. When abandonment criteria are met, the scheduler creates recovery attempts from the active policy.
-4. When an attempt becomes due, the executor performs a final state read.
-5. If the cart is still eligible, the executor sends through the notification adapter.
-6. If the cart was purchased, emptied, or otherwise invalidated, the executor suppresses the attempt.
+2. Ingestion classifies the event into a throughput-oriented mutation lane or a protected critical-event lane.
+3. State processor updates the latest cart recovery state.
+4. When abandonment criteria are met, the scheduler creates recovery attempts from the active policy.
+5. When an attempt becomes due, the executor performs a final state read.
+6. The eligibility evaluator applies ordered pre-send checks.
+7. If the cart is still eligible, the executor sends through the notification adapter.
+8. If the cart was purchased, emptied, out of stock, or otherwise invalidated, the executor suppresses the attempt.
 
 ## Abandonment and Safety Model
 
@@ -166,9 +286,14 @@ Approach:
 - Rebind future sends and policy selection when identity becomes known.
 - Ensure stitching does not create duplicate attempts for the same cart sequence.
 
+Detailed identity-link event handling and merge semantics should live in:
+- [Identity, contract, and storage details](./abandoned-cart-recovery-data-contracts-and-storage.md)
+
 ## Scalability and Reliability Considerations
 
 - Assume at-least-once delivery from the event backbone.
+- Separate high-volume mutation processing from critical invalidation and eligibility-impacting events.
+- Give critical lanes dedicated capacity, tighter lag alerts, and stronger replay guarantees.
 - Use idempotency keys for both scheduling and sending.
 - Decouple ingestion from execution with asynchronous queues or scheduled jobs.
 - Prefer latest-state reads for final send decisions rather than relying on stale scheduled payloads.
@@ -235,21 +360,15 @@ This keeps the demo narrow while still proving the hardest correctness path.
 
 ## Delivery Milestones
 
-### Milestone 1: RFC and design alignment
+The estimates below assume one engineer is orchestrating implementation work performed by coding agents in parallel. Calendar time can compress through parallelism, but review, integration, and validation still bottleneck on the engineer.
 
-- finalize architecture, boundaries, and policy model
-
-### Milestone 2: MVP prototype
-
-- deliver a local end-to-end flow with mocked providers
-
-### Milestone 3: Production hardening plan
-
-- define storage, queue, deployment, observability, and rollout details
-
-### Milestone 4: Controlled rollout
-
-- enable real traffic in phases with monitoring and rollback controls
+| Milestone | Level of Effort (Eng weeks) | External Dependencies |
+| --- | --- | --- |
+| RFC and design alignment | 1.0 to 1.5 | Product definition on abandonment semantics, channel scope, and experimentation goals |
+| Core architecture and data-contract design | 1.5 to 2.0 | Access to source event definitions, identity semantics, and storage or queue platform guidance |
+| MVP prototype for local demo | 1.5 to 2.5 | Mockable notification provider contract and agreed local runtime setup |
+| Production hardening and observability | 2.0 to 3.0 | Monitoring stack conventions, deployment environment, alerting destination, and load-test assumptions |
+| Controlled rollout readiness | 1.0 to 1.5 | Real provider credentials, rollout policy owner, and production traffic segmentation strategy |
 
 ## Estimated Long Poles
 

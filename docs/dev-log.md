@@ -223,3 +223,127 @@ Planning for the first RFC draft and push has been recorded. The RFC file has no
 Notes:
 The RFC should emphasize scalable production design, telemetry, monitoring, and rollout strategy, while explicitly treating the MVP prototype as a later execution concern.
 ---
+
+---
+Timestamp: 2026-03-23 11:00 local
+
+User Request:
+Revise the RFC to address event-volume skew, extensible eligibility checks, architecture diagrams, and separating detailed storage and contract design into a companion RFC document.
+
+Codex Plan:
+- Update the main RFC to describe how critical eligibility-impacting events avoid head-of-line blocking behind high-volume cart mutation traffic.
+- Refine the executor design so eligibility checks are modeled as an extensible policy chain rather than only purchase or empty-cart checks.
+- Add Mermaid diagrams for architecture and data flow.
+- Create a companion RFC document for detailed data contracts and storage design, and link to it from the main RFC.
+- Intended files to touch: `docs/dev-log.md`, `docs/rfc/abandoned-cart-recovery-system.md`, and a new companion doc under `docs/rfc`.
+- Expected validation: inspect the revised RFC sections and new companion doc, then verify only documentation files changed.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the RFC revision has been recorded. The RFC files have not been updated yet.
+
+Notes:
+This revision should keep the main RFC readable while moving deeper schema and contract details into a dedicated follow-on design doc.
+---
+
+---
+Timestamp: 2026-03-23 11:01 local
+
+User Request:
+Revise the RFC to address event-volume skew, extensible eligibility checks, architecture diagrams, and separating detailed storage and contract design into a companion RFC document.
+
+Codex Plan:
+- Record the completed RFC updates in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual changes separately.
+- Keep the main RFC high level while moving lower-level schema and contract concerns into a companion doc.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to add head-of-line blocking mitigation, an extensible eligibility evaluator, and Mermaid diagrams for architecture and data flow.
+- Added `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md` as a companion doc for storage and contract design.
+- Verified the revised docs with `sed -n` reads and checked the working tree with `git status --short`.
+
+Outcome:
+The main RFC now distinguishes high-volume mutation traffic from critical eligibility-impacting events, defines the executor's pre-send validation as an extensible eligibility evaluation step, includes architecture and sequence diagrams, and links to a companion storage-and-contracts RFC. The working tree contains only documentation changes plus the unrelated untracked `excalidraw.log`.
+
+Notes:
+The next review pass should decide how explicit we want to be about the critical-event lane design, especially whether it should be framed as separate topics, queues, or logical priority handling without overcommitting to a vendor-specific implementation.
+---
+
+---
+Timestamp: 2026-03-23 11:34 local
+
+User Request:
+Revise the RFC to replace Mermaid with an alternative diagram format, keep the main RFC higher level with links into the companion doc, and add a milestone table with effort and dependencies assuming one engineer coordinating coding agents.
+
+Codex Plan:
+- Replace Mermaid diagrams with ASCII diagrams that render reliably in Markdown preview.
+- Simplify the main RFC where deeper implementation detail belongs in the companion doc, and add links where readers may need to zoom in.
+- Add a delivery milestone table with milestone name, engineering-week estimate, and external dependencies based on a single engineer coordinating parallel coding agents.
+- Intended files to touch: `docs/dev-log.md`, `docs/rfc/abandoned-cart-recovery-system.md`, and `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md`.
+- Expected validation: inspect the updated RFC docs and verify only documentation files changed.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the RFC refinement has been recorded. The RFC files have not been updated yet for this pass.
+
+Notes:
+This change should improve readability in Markdown preview and sharpen the separation between architecture-level guidance and implementation-level detail.
+---
+
+---
+Timestamp: 2026-03-23 11:36 local
+
+User Request:
+Revise the RFC to replace Mermaid with an alternative diagram format, keep the main RFC higher level with links into the companion doc, and add a milestone table with effort and dependencies assuming one engineer coordinating coding agents.
+
+Codex Plan:
+- Record the completed RFC refinements in a new append-only log entry.
+- Preserve the earlier planning entry and describe the actual document changes separately.
+- Keep the main RFC architecture-focused while expanding the companion doc only where implementation detail is needed.
+
+Actions Taken:
+- Replaced Mermaid diagrams in `docs/rfc/abandoned-cart-recovery-system.md` with ASCII diagrams.
+- Simplified the main RFC's data-model treatment and added links from key sections into `docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md`.
+- Added a delivery milestone table with engineering-week estimates and external dependencies.
+- Expanded the companion doc to cover processing-lane implementation detail and eligibility-evaluation modeling.
+- Verified the updated docs with `sed -n` reads and checked the working tree with `git status --short`.
+
+Outcome:
+The main RFC now renders reliably in Markdown preview using ASCII diagrams, stays focused on high-level architecture, and points readers to the companion doc for queueing, schema, contract, and evaluator details. The milestone section now includes explicit effort and dependency estimates under the assumption of one engineer coordinating parallel coding-agent execution.
+
+Notes:
+The documentation changes are not committed or pushed yet. The unrelated untracked file `excalidraw.log` remains untouched.
+---
+
+---
+Timestamp: 2026-03-23 11:36 local
+
+User Request:
+Commit and push the latest RFC revisions.
+
+Codex Plan:
+- Inspect the working tree to confirm which documentation changes are pending.
+- Stage the updated RFC docs and the append-only dev log without including unrelated files.
+- Create a commit for the latest RFC revisions and push `main` to `origin`.
+- Intended files to touch: `docs/dev-log.md`, the updated RFC docs under `docs/rfc`, and git metadata for staging, commit, and push operations.
+- Expected validation: verify `git status --short`, confirm the latest commit with `git log -1 --stat --oneline`, and ensure `git push origin main` succeeds.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the commit and push has been recorded. Staging, commit creation, and push have not been run yet.
+
+Notes:
+The unrelated untracked file `excalidraw.log` should remain excluded.
+---
