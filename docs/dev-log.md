@@ -1828,6 +1828,28 @@ Notes:
 This is a documentation-only publish. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
 ---
 ---
+Timestamp: 2026-03-23 18:19 local
+
+User Request:
+Push the RFC and docs cleanup.
+
+Codex Plan:
+- Record the exact commit and push result for the RFC diagram and doc-link cleanup.
+- Keep the append-only development log aligned with the published repository history.
+- Leave unrelated untracked `.kotlin/` and `excalidraw.log` untouched.
+
+Actions Taken:
+- Created commit `cb693b3` with the RFC diagram fix, the relative-link cleanup across docs, and the dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The RFC and docs cleanup is published on `origin/main` in commit `cb693b3`. The ghost arrow is removed from the main RFC diagram and the affected docs now use relative links that render correctly in GitHub UI.
+
+Notes:
+This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+---
 Timestamp: 2026-03-23 18:01 local
 
 User Request:
