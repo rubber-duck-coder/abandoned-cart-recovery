@@ -1899,6 +1899,29 @@ This should be the last workflow/documentation publish before submission.
 ---
 
 ---
+Timestamp: 2026-03-23 17:52 local
+
+User Request:
+Commit and push the final polish updates.
+
+Codex Plan:
+- Record the exact commit and push result for the final polish update.
+- Keep the append-only development log aligned with the published repository history.
+- Leave unrelated untracked `.kotlin/` and `excalidraw.log` untouched.
+
+Actions Taken:
+- Created commit `74e0b31` with the final README and Makefile polish plus the dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The final submission polish is published on `origin/main` in commit `74e0b31`. The repository now includes a reviewer path in the README and a `make verify` entrypoint for the main local checks.
+
+Notes:
+This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+
+---
 Timestamp: 2026-03-23 17:49 local
 
 User Request:
