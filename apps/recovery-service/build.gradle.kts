@@ -11,6 +11,16 @@ application {
     mainClass.set("com.abandonedcart.recovery.MainKt")
 }
 
+val integrationTestSourceSet = sourceSets.create("integrationTest") {
+    java.srcDir("src/integrationTest/kotlin")
+    resources.srcDir("src/integrationTest/resources")
+    compileClasspath += sourceSets["main"].output + configurations.testRuntimeClasspath.get()
+    runtimeClasspath += output + compileClasspath
+}
+
+configurations[integrationTestSourceSet.implementationConfigurationName].extendsFrom(configurations.testImplementation.get())
+configurations[integrationTestSourceSet.runtimeOnlyConfigurationName].extendsFrom(configurations.testRuntimeOnly.get())
+
 dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
     implementation("com.google.inject:guice:7.0.0")
@@ -31,23 +41,15 @@ dependencies {
 val integrationTest by tasks.registering(Test::class) {
     description = "Runs integration and end-to-end tests."
     group = LifecycleBasePlugin.VERIFICATION_GROUP
-    testClassesDirs = sourceSets["test"].output.classesDirs
-    classpath = sourceSets["test"].runtimeClasspath
+    testClassesDirs = integrationTestSourceSet.output.classesDirs
+    classpath = integrationTestSourceSet.runtimeClasspath
     useJUnitPlatform()
-    filter {
-        includeTestsMatching("*IntegrationTest")
-        includeTestsMatching("*E2ETest")
-    }
     shouldRunAfter(tasks.test)
 }
 
 tasks.test {
     description = "Runs unit tests only."
     useJUnitPlatform()
-    filter {
-        excludeTestsMatching("*IntegrationTest")
-        excludeTestsMatching("*E2ETest")
-    }
 }
 
 tasks.check {

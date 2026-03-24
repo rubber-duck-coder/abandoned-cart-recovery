@@ -11,6 +11,11 @@ See [load-testing.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/ru
 - `infra/`: local runtime assets
 - `ui/`: reserved for future UI work
 
+Test layout:
+
+- `apps/recovery-service/src/test/kotlin`: unit tests
+- `apps/recovery-service/src/integrationTest/kotlin`: integration and E2E tests
+
 ## Local Development
 
 Generate the Gradle wrapper:

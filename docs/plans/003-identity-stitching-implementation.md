@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress
+Completed
 
 ## Goal
 
@@ -68,6 +68,14 @@ This is not a blocker for implementation.
 | I1 | Identity event contract and state-write rules | 001 completed | identity-link event shape and merge semantics are coded and documented |
 | I2 | Attempt rebinding behavior | I1 | future attempts reflect the known user identity |
 | I3 | Focused integration and E2E coverage | I1, I2 | anonymous-to-known flow passes end to end |
+
+## Milestone Status
+
+| Milestone | Status | Notes |
+| --- | --- | --- |
+| I1 | Completed | `identity_linked` state events update recovery state and remain idempotent on replay. |
+| I2 | Completed | Only `SCHEDULED` attempts are rebound to the stitched `user_id`; terminal attempts stay unchanged. |
+| I3 | Completed | Kafka-driven processor coverage plus E2E stitched-cart flow now pass under the dedicated `integrationTest` source set. |
 
 ## Detailed Task List
 

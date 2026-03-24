@@ -64,18 +64,7 @@ class RecoveryFlowE2ETest {
             val attempts = waitForAttempts(cartId, expectedCount = 3)
             assertEquals(3, attempts.size)
             val dueAttempt = attempts.minBy { it.scheduledAt }
-
-            dueAttemptExecutor.execute(
-                RecoveryAttemptDueEvent(
-                    attemptId = dueAttempt.attemptId,
-                    cartId = dueAttempt.cartId,
-                    channel = dueAttempt.channel,
-                    templateKey = dueAttempt.templateKey,
-                    scheduledAt = dueAttempt.scheduledAt.toString(),
-                ),
-            )
-
-            val firstAttempt = waitForAttemptStatus(dueAttempt.attemptId, "SENT")
+            val firstAttempt = waitForAttemptExecutionOrExecute(dueAttempt.attemptId)
             assertNotNull(firstAttempt)
             assertEquals("SENT", firstAttempt.status)
             assertEquals("ALLOWED", firstAttempt.frequencyCapResult)
@@ -131,17 +120,7 @@ class RecoveryFlowE2ETest {
             kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, purchaseEvent)
             waitForState(cartId, "PURCHASED")
 
-            dueAttemptExecutor.execute(
-                RecoveryAttemptDueEvent(
-                    attemptId = dueAttempt.attemptId,
-                    cartId = dueAttempt.cartId,
-                    channel = dueAttempt.channel,
-                    templateKey = dueAttempt.templateKey,
-                    scheduledAt = dueAttempt.scheduledAt.toString(),
-                ),
-            )
-
-            val firstAttempt = waitForAttemptStatus(dueAttempt.attemptId, "SUPPRESSED")
+            val firstAttempt = waitForAttemptExecutionOrExecute(dueAttempt.attemptId)
             assertNotNull(firstAttempt)
             assertEquals("SUPPRESSED", firstAttempt.status)
             assertEquals("cart_purchased", firstAttempt.suppressionReason)
@@ -160,6 +139,62 @@ class RecoveryFlowE2ETest {
         }
     }
 
+    @Test
+    fun `identity stitched abandoned cart rebinds scheduled attempts before execution`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val anonymousId = "anon-${UUID.randomUUID()}"
+        val knownUserId = "user-${UUID.randomUUID()}"
+
+        publishCartMutation(cartId = cartId, anonymousId = anonymousId, userId = null)
+        val anonymousState = waitForState(cartId, "ACTIVE")
+
+        assertNotNull(anonymousState)
+        assertEquals(anonymousId, anonymousState.anonymousId)
+        assertEquals(null, anonymousState.userId)
+
+        val abandonedEvent = CartAbandonedEvent(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            anonymousId = anonymousId,
+            userId = null,
+            abandonedAt = OffsetDateTime.now().minusHours(24).plusSeconds(5).toString(),
+        )
+        kafkaProducer.publish(appConfig.recoveryCartAbandonedTopic, cartId, abandonedEvent)
+
+        val scheduledBeforeStitch = waitForAttempts(cartId, expectedCount = 3)
+        assertEquals(3, scheduledBeforeStitch.size)
+        assertTrue(scheduledBeforeStitch.all { it.userId == null })
+
+        val identityEvent = CartStateEvent(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            stateType = "identity_linked",
+            occurredAt = OffsetDateTime.now().toString(),
+            eventReference = "2",
+            anonymousId = anonymousId,
+            userId = knownUserId,
+            stitchedIdentityJson = """{"linked":true,"source":"checkout"}""",
+        )
+        kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, identityEvent)
+
+        val stitchedState = waitForState(cartId, expectedStatus = "ACTIVE", expectedUserId = knownUserId)
+        assertNotNull(stitchedState)
+        assertEquals(anonymousId, stitchedState.anonymousId)
+        assertEquals(knownUserId, stitchedState.userId)
+        assertEquals(2L, stitchedState.stateVersion)
+
+        val reboundAttempts = waitForAttemptUserId(cartId, expectedCount = 3, expectedUserId = knownUserId)
+        assertEquals(3, reboundAttempts.size)
+        assertTrue(reboundAttempts.all { it.userId == knownUserId })
+
+        val sentAttempt = waitForAttemptExecutionOrExecute(reboundAttempts.minBy { it.scheduledAt }.attemptId)
+
+        assertNotNull(sentAttempt)
+        assertEquals("SENT", sentAttempt.status)
+        assertEquals(knownUserId, sentAttempt.userId)
+        assertEquals(3, recoveryAttemptRepository.findByCartId(cartId).size)
+    }
+
     @BeforeEach
     fun truncateTables() {
         dataSource.connection.use { connection ->
@@ -169,25 +204,40 @@ class RecoveryFlowE2ETest {
         }
     }
 
-    private fun publishCartMutation(cartId: String) {
+    private fun publishCartMutation(
+        cartId: String,
+        stateVersion: String = "1",
+        anonymousId: String? = null,
+        userId: String? = "user-1",
+    ) {
+        val attributes = linkedMapOf(
+            "stateVersion" to stateVersion,
+            "cartSnapshotJson" to """{"items":["sku-1"]}""",
+        )
+        if (anonymousId != null) {
+            attributes["anonymousId"] = anonymousId
+        }
+        if (userId != null) {
+            attributes["userId"] = userId
+        }
         val event = CartMutationEvent(
             cartId = cartId,
             tenantId = "tenant-1",
             mutationType = "item_added",
             occurredAt = OffsetDateTime.now().toString(),
-            attributes = mapOf(
-                "stateVersion" to "1",
-                "cartSnapshotJson" to """{"items":["sku-1"]}""",
-                "userId" to "user-1",
-            ),
+            attributes = attributes,
         )
         kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, event)
     }
 
-    private fun waitForState(cartId: String, expectedStatus: String): com.abandonedcart.recovery.repository.CartRecoveryState? {
+    private fun waitForState(
+        cartId: String,
+        expectedStatus: String,
+        expectedUserId: String? = null,
+    ): com.abandonedcart.recovery.repository.CartRecoveryState? {
         repeat(80) {
             val state = cartRecoveryStateRepository.findByCartId(cartId)
-            if (state != null && state.cartStatus == expectedStatus) {
+            if (state != null && state.cartStatus == expectedStatus && (expectedUserId == null || state.userId == expectedUserId)) {
                 return state
             }
             Thread.sleep(250)
@@ -215,6 +265,17 @@ class RecoveryFlowE2ETest {
             Thread.sleep(250)
         }
         return recoveryAttemptRepository.findByAttemptId(attemptId)
+    }
+
+    private fun waitForAttemptUserId(cartId: String, expectedCount: Int, expectedUserId: String): List<RecoveryAttempt> {
+        repeat(80) {
+            val attempts = recoveryAttemptRepository.findByCartId(cartId)
+            if (attempts.size == expectedCount && attempts.all { it.userId == expectedUserId }) {
+                return attempts
+            }
+            Thread.sleep(250)
+        }
+        return recoveryAttemptRepository.findByCartId(cartId)
     }
 
     private fun waitForAnalyticsEvents(
@@ -262,6 +323,35 @@ class RecoveryFlowE2ETest {
         return eventsByType
     }
 
+    private fun waitForAttemptExecutionOrExecute(attemptId: String): RecoveryAttempt {
+        repeat(80) {
+            val current = recoveryAttemptRepository.findByAttemptId(attemptId)
+            if (current != null && current.status in TERMINAL_ATTEMPT_STATUSES) {
+                return current
+            }
+            if (current != null && current.status == "SCHEDULED" && !current.scheduledAt.isAfter(OffsetDateTime.now())) {
+                val claimed = recoveryAttemptRepository.claimDueAttempts(limit = 1, leaseDuration = Duration.ofMinutes(5))
+                val claimedAttempt = claimed.singleOrNull { it.attemptId == attemptId }
+                if (claimedAttempt != null) {
+                    assertTrue(recoveryAttemptRepository.markDispatched(claimedAttempt.attemptId))
+                    assertTrue(
+                        dueAttemptExecutor.execute(
+                            RecoveryAttemptDueEvent(
+                                attemptId = claimedAttempt.attemptId,
+                                cartId = claimedAttempt.cartId,
+                                channel = claimedAttempt.channel,
+                                templateKey = claimedAttempt.templateKey,
+                                scheduledAt = claimedAttempt.scheduledAt.toString(),
+                            ),
+                        ),
+                    )
+                }
+            }
+            Thread.sleep(250)
+        }
+        return requireNotNull(recoveryAttemptRepository.findByAttemptId(attemptId))
+    }
+
     companion object {
         private val topicSuffix = UUID.randomUUID().toString().take(8)
         private val appConfig = AppConfig.fromEnv(
@@ -287,6 +377,7 @@ class RecoveryFlowE2ETest {
         private lateinit var kafkaConsumer: KafkaLoggingConsumer
         private lateinit var dueAttemptDispatcher: DueAttemptDispatcher
         private lateinit var dueAttemptExecutor: DueAttemptExecutor
+        private val TERMINAL_ATTEMPT_STATUSES = setOf("SENT", "SUPPRESSED", "FAILED")
 
         @JvmStatic
         @BeforeAll

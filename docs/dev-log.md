@@ -1756,6 +1756,29 @@ This log entry itself is local until it is included in the follow-up log-only co
 ---
 
 ---
+Timestamp: 2026-03-23 17:29 local
+
+User Request:
+Commit, push, and move forward after completing the identity-stitching work.
+
+Codex Plan:
+- Publish the completed identity-stitching checkpoint together with the dedicated `integrationTest` source-set move and related workflow updates.
+- Stage only the intended tracked files and new integration-test files, excluding unrelated untracked `.kotlin/` and `excalidraw.log`.
+- Create one commit for this checkpoint, push `main` to `origin`, and then record the publication outcome in the append-only log.
+
+Actions Taken:
+- Read `AGENTS.md` and the current tail of `docs/dev-log.md`.
+- Inspected the pending working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Publication planning for the identity-stitching checkpoint is recorded. The code and documentation changes remain local at this point.
+
+Notes:
+This publish includes both the completed identity-stitching slice and the earlier test-layout refactor that moved integration and E2E coverage under `src/integrationTest`.
+---
+
+---
 Timestamp: 2026-03-23 17:08 local
 
 User Request:
@@ -1968,6 +1991,151 @@ Planning for test-suite separation is recorded. The next step is to inspect the 
 
 Notes:
 This is a workflow-hardening task intended to make the current async-heavy test suite easier to run and debug. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
+Timestamp: 2026-03-23 17:12 local
+
+User Request:
+Move the integration tests into their own dedicated directory.
+
+Codex Plan:
+- Create a real `integrationTest` source set rather than only filtering classes out of the shared `test` source set.
+- Move the integration and E2E test files into `apps/recovery-service/src/integrationTest/kotlin` while keeping unit tests in `src/test/kotlin`.
+- Update Gradle and the README to reflect the new layout and then validate both the unit and integration tasks.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed `apps/recovery-service/build.gradle.kts`.
+- Reviewed the current test file layout under `apps/recovery-service/src/test/kotlin`.
+- Appended this planning entry before changing the test source-set layout.
+
+Outcome:
+Planning for the dedicated integration-test directory split is recorded. The next step is to move the integration and E2E tests into `src/integrationTest` and wire Gradle to that source set.
+
+Notes:
+This change is a cleanup and workflow-hardening step. The unrelated untracked `.kotlin/` directory and `excalidraw.log` remain excluded.
+---
+
+---
+Timestamp: 2026-03-23 17:15 local
+
+User Request:
+Continue forward after separating integration tests into their own directory.
+
+Codex Plan:
+- Fix the remaining failing suppression-path E2E under the new `integrationTest` source set.
+- Keep the change local to the test harness unless the runtime behavior is actually wrong.
+- Re-run the targeted integration test after the fix to confirm the dedicated integration task is usable.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed `apps/recovery-service/src/integrationTest/kotlin/com/abandonedcart/recovery/e2e/RecoveryFlowE2ETest.kt`.
+- Reviewed `DueAttemptDispatcher` and `RecoveryAttemptRepository` to confirm the expected dispatch-state transitions before executor claim.
+- Appended this planning entry before editing the E2E harness.
+
+Outcome:
+Planning for the targeted integration-test fix is recorded. The next step is to make the E2E path honor the `DISPATCHED` precondition before invoking the executor directly.
+
+Notes:
+This is intended to fix the test harness, not to change the production dispatcher or executor semantics.
+---
+
+---
+Timestamp: 2026-03-23 17:17 local
+
+User Request:
+Continue forward after separating integration tests into their own directory.
+
+Codex Plan:
+- Fix the remaining failing suppression-path E2E under the new `integrationTest` source set.
+- Keep the change local to the test harness unless the runtime behavior is actually wrong.
+- Re-run the targeted integration test after the fix to confirm the dedicated integration task is usable.
+
+Actions Taken:
+- Updated `apps/recovery-service/src/integrationTest/kotlin/com/abandonedcart/recovery/e2e/RecoveryFlowE2ETest.kt`.
+- Replaced the direct executor shortcut with a helper that explicitly claims, marks dispatched, and then executes the due attempt.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests 'com.abandonedcart.recovery.e2e.RecoveryFlowE2ETest'`.
+
+Outcome:
+The targeted E2E now passes under the dedicated `integrationTest` source set. The test harness now honors the real dispatcher-to-executor state transition instead of invoking the executor against a still-`SCHEDULED` attempt. This confirms that the new `integrationTest` directory and task are working for the E2E path.
+
+Notes:
+This was a test-harness fix, not a production behavior change. The next useful step is to continue the identity-stitching implementation and then run broader integration coverage under `./gradlew integrationTest`.
+---
+
+---
+Timestamp: 2026-03-23 17:17 local
+
+User Request:
+Continue forward with the identity-stitching work.
+
+Codex Plan:
+- Validate the new unit versus integration split against the broader integration suite, not just the targeted E2E.
+- Use those results to identify what remains for Plan `003`, especially `I2` and `I3`.
+- Fix the smallest remaining issue revealed by the dedicated integration suite before making more structural changes.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Inspected the current working tree after the source-set move and targeted E2E fix.
+- Appended this planning entry before running broader `integrationTest` validation.
+
+Outcome:
+Planning for the next identity-stitching execution step is recorded. The next step is to run the broader integration suite from the dedicated `src/integrationTest` source set and use that to drive the next fix.
+
+Notes:
+This step is meant to converge on a stable integration baseline for `003`, not to broaden the production feature set. The unrelated untracked `.kotlin/` directory and `excalidraw.log` remain excluded.
+---
+
+---
+Timestamp: 2026-03-23 17:19 local
+
+User Request:
+Continue forward with the identity-stitching work.
+
+Codex Plan:
+- Close the `I3` gap by adding a dedicated end-to-end stitched-identity scenario under `src/integrationTest`.
+- Prove the intended flow: anonymous cart activity, abandoned scheduling, identity-link event, scheduled-attempt rebinding, and due execution using the known identity.
+- Validate the new scenario through the dedicated `integrationTest` task without changing the production architecture.
+
+Actions Taken:
+- Reviewed `docs/plans/003-identity-stitching-implementation.md`.
+- Reviewed the current identity coverage in `src/integrationTest`.
+- Appended this planning entry before adding the stitched-identity E2E.
+
+Outcome:
+Planning for the `I3` stitched-identity E2E slice is recorded. The next step is to add the missing end-to-end test and run it through `./gradlew integrationTest`.
+
+Notes:
+This is the first-class proof that is still missing from Plan `003`. The unrelated untracked `.kotlin/` directory and `excalidraw.log` remain excluded.
+---
+
+---
+Timestamp: 2026-03-23 17:14 local
+
+User Request:
+Move the integration tests into their own dedicated directory.
+
+Codex Plan:
+- Create a real `integrationTest` source set rather than only filtering classes out of the shared `test` source set.
+- Move the integration and E2E test files into `apps/recovery-service/src/integrationTest/kotlin` while keeping unit tests in `src/test/kotlin`.
+- Update Gradle and the README to reflect the new layout and then validate both the unit and integration tasks.
+
+Actions Taken:
+- Moved `KafkaContractIntegrationTest.kt`, `DueAttemptDispatcherIntegrationTest.kt`, `RecoveryFlowE2ETest.kt`, `KafkaStateIngestionIntegrationTest.kt`, and `RepositoryIntegrationTest.kt` into `apps/recovery-service/src/integrationTest/kotlin`.
+- Updated `apps/recovery-service/build.gradle.kts` to add a real `integrationTest` source set and task.
+- Updated `README.md` to document the unit and integration test directories and commands.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests 'com.abandonedcart.recovery.e2e.RecoveryFlowE2ETest'`.
+
+Outcome:
+The dedicated directory split is implemented. `src/test/kotlin` now contains only unit tests, and `src/integrationTest/kotlin` contains the integration and E2E suite. The unit task passed. The new `integrationTest` task also ran from the dedicated source set successfully, but the targeted E2E still fails on the existing suppression-path assertion in `RecoveryFlowE2ETest`, so the source-set split is correct while the pre-existing integration instability remains unresolved.
+
+Notes:
+This change improves structure and workflow, but it does not by itself fix the async E2E failure. The unrelated untracked `.kotlin/` directory and `excalidraw.log` remain excluded.
 ---
 
 ---
@@ -3100,6 +3268,34 @@ Planning for the E2E test checkpoint publish is recorded. The new test remains l
 
 Notes:
 This checkpoint is focused on milestone closure through clearer end-to-end proof rather than new runtime behavior.
+---
+
+---
+Timestamp: 2026-03-23 17:28 local
+
+User Request:
+Continue the identity-stitching implementation, stabilize the dedicated integration-test layout, and close the stitched anonymous-to-known flow.
+
+Codex Plan:
+- Add a focused E2E scenario for anonymous cart activity, abandoned scheduling, identity linking, attempt rebinding, and final execution.
+- Harden the E2E helper logic so the tests remain valid even when the local Docker app is polling the shared Postgres database.
+- Re-run unit and integration verification, then update the identity-stitching plan to reflect actual completion status.
+
+Actions Taken:
+- Updated `apps/recovery-service/src/integrationTest/kotlin/com/abandonedcart/recovery/e2e/RecoveryFlowE2ETest.kt` with a stitched identity E2E scenario, anonymous mutation helper support, and a race-safe execution helper that tolerates external workers claiming due attempts.
+- Updated `docs/plans/003-identity-stitching-implementation.md` to mark `003` and milestones `I1` through `I3` as completed.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests 'com.abandonedcart.recovery.e2e.RecoveryFlowE2ETest.identity stitched abandoned cart rebinds scheduled attempts before execution'`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests 'com.abandonedcart.recovery.e2e.RecoveryFlowE2ETest.identity stitched abandoned cart rebinds scheduled attempts before execution' --tests 'com.abandonedcart.recovery.e2e.RecoveryFlowE2ETest.purchase before dispatch suppresses the due attempt with matching analytics'`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests 'com.abandonedcart.recovery.e2e.RecoveryFlowE2ETest'`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest`.
+- Inspected live `recovery_attempt` rows via `docker compose exec -T postgres psql ...` to diagnose test flakiness caused by the local dispatcher/executor operating on the shared test database.
+
+Outcome:
+The identity-stitching slice is now complete locally. The dedicated `integrationTest` source set remains intact, the new anonymous-to-known E2E flow passes, and the helper logic is resilient to the local Docker app concurrently dispatching due attempts from the shared Postgres database. Both `./gradlew test` and `./gradlew integrationTest` passed after the harness changes.
+
+Notes:
+The shared local Postgres database means integration tests can observe real background dispatcher behavior if the Docker stack is running. The E2E helper was updated to handle that explicitly rather than assuming the test process always owns due-attempt claiming. Unrelated untracked `.kotlin/` and `excalidraw.log` remain untouched.
 ---
 
 ---
