@@ -1777,6 +1777,84 @@ Publication planning for the latest documentation updates is recorded. The verif
 Notes:
 This publish is documentation-only and follows successful unit, integration, and representative load verification.
 ---
+
+---
+Timestamp: 2026-03-23 17:42 local
+
+User Request:
+Rename the future-improvements plan from `005` to `004`, add a Makefile, and improve the README with prerequisites and simple commands for unit tests, integration tests, and load tests.
+
+Codex Plan:
+- Rename the future-improvements plan file to keep numbering continuity.
+- Add a small Makefile with the most common local commands and a prerequisite check helper.
+- Rewrite the README so a new repo user can understand prerequisites, verify them, and run the core workflows quickly.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Read `README.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+The developer-workflow improvement task is now logged and ready for implementation.
+
+Notes:
+This change is intended to lower the barrier for anyone with repo access to build, test, and load-test the project locally.
+---
+
+---
+Timestamp: 2026-03-23 17:48 local
+
+User Request:
+Commit and push the workflow updates, then assess whether any further polishing is needed before submitting the take-home.
+
+Codex Plan:
+- Publish the verified workflow changes: plan renumbering, Makefile, README improvements, and dev-log updates.
+- Exclude unrelated untracked `.kotlin/` and `excalidraw.log` from the commit.
+- After the push, scan the codebase and docs for any remaining high-value polish items worth addressing before submission.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Read `README.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Publication and final-polish review planning for the workflow update is recorded. The changes remain local at this point.
+
+Notes:
+The final polish review should focus on submission quality, not new scope expansion.
+---
+
+---
+Timestamp: 2026-03-23 17:44 local
+
+User Request:
+Rename the future-improvements plan from `005` to `004`, add a Makefile, and improve the README with prerequisites and simple commands for unit tests, integration tests, and load tests.
+
+Codex Plan:
+- Rename the plan file to keep numbering continuity.
+- Add a small Makefile with prerequisite checks, common test targets, stack helpers, and load-test entrypoints.
+- Improve the README so a new repo user can understand prerequisites, verify them, and run the main workflows quickly.
+
+Actions Taken:
+- Renamed `docs/plans/005-future-improvements-and-perfection.md` to `docs/plans/004-future-improvements-and-perfection.md` and updated its title.
+- Added `Makefile`.
+- Updated `README.md`.
+- Ran `make prereqs`.
+- Ran `make help`.
+- Ran `make unit`.
+- Ran `make integration`.
+- Ran `make health`.
+- Ran `make load-smooth LOAD_ARGS="--events-per-second 12 --ramp-seconds 2 --sustain-seconds 4 --cooldown-seconds 1 --cart-count 200"`.
+
+Outcome:
+The workflow improvements are implemented locally. The future-improvements plan now uses `004`, the repo has a simple Makefile for the common onboarding commands, and the README has clearer prerequisite, quick-start, and command sections. The new Makefile entrypoints verified successfully, including a smoke load run that published `69` total events in about `7.03s`.
+
+Notes:
+In this Codex environment, `make health` and the load target required host-level access because sandbox restrictions block local port and Docker-socket access. For a normal repo user with local Docker access, those commands are intended to work directly.
+---
 ---
 Timestamp: 2026-03-23 17:41 local
 
