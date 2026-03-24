@@ -1777,6 +1777,28 @@ Publication planning for the latest documentation updates is recorded. The verif
 Notes:
 This publish is documentation-only and follows successful unit, integration, and representative load verification.
 ---
+---
+Timestamp: 2026-03-23 17:41 local
+
+User Request:
+Commit and push the latest documentation updates after verification.
+
+Codex Plan:
+- Record the exact commit and push result for the verified documentation-only update.
+- Keep the append-only development log aligned with the published repository history.
+- Leave unrelated untracked `.kotlin/` and `excalidraw.log` untouched.
+
+Actions Taken:
+- Created commit `9abc8af` with the updated `001` plan, the new `005` future-improvements plan, and the dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The verified documentation update is published on `origin/main` in commit `9abc8af`. The plan set now includes the cleaned-up `001` status and the new future-improvements backlog in `005`.
+
+Notes:
+This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
 
 ---
 Timestamp: 2026-03-23 17:29 local
