@@ -3,9 +3,9 @@
 Monorepo for the abandoned cart recovery prototype.
 
 Start here for the high-level solution and codebase walkthrough:
-[solution-overview.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/solution-overview.md)
+[solution-overview.md](docs/solution-overview.md)
 
-See [load-testing.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/runbooks/load-testing.md) for the local hardening and load-test workflow.
+See [load-testing.md](docs/runbooks/load-testing.md) for the local hardening and load-test workflow.
 
 ## What This Repo Gives You
 
@@ -18,9 +18,9 @@ See [load-testing.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/ru
 
 If you want the fastest way to understand and verify the submission:
 
-1. Read the architecture in [abandoned-cart-recovery-system.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-system.md).
-2. Review implementation scope in [001-mvp-prototype-implementation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/001-mvp-prototype-implementation.md), [002-hardening-and-load-validation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/002-hardening-and-load-validation.md), and [003-identity-stitching-implementation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/003-identity-stitching-implementation.md).
-3. Check the AI audit trail in [docs/dev-log.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/dev-log.md).
+1. Read the architecture in [abandoned-cart-recovery-system.md](docs/rfc/abandoned-cart-recovery-system.md).
+2. Review implementation scope in [001-mvp-prototype-implementation.md](docs/plans/001-mvp-prototype-implementation.md), [002-hardening-and-load-validation.md](docs/plans/002-hardening-and-load-validation.md), and [003-identity-stitching-implementation.md](docs/plans/003-identity-stitching-implementation.md).
+3. Check the AI audit trail in [docs/dev-log.md](docs/dev-log.md).
 4. Run the quickest local verification path:
 
 ```bash
@@ -269,4 +269,4 @@ Resource usage and error-rate view:
 
 ![Grafana resource and error view](docs/assets/screenshots/grafana-resources-errors.png)
 
-For deeper tuning workflows and the full set of load-test commands, see [load-testing.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/runbooks/load-testing.md).
+For deeper tuning workflows and the full set of load-test commands, see [load-testing.md](docs/runbooks/load-testing.md).

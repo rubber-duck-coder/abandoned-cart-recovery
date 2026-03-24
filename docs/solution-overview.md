@@ -61,12 +61,12 @@ This repository contains a local, end-to-end abandoned cart recovery prototype d
 ## Best Entry Points
 
 - Architecture:
-  [abandoned-cart-recovery-system.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-system.md)
+  [abandoned-cart-recovery-system.md](rfc/abandoned-cart-recovery-system.md)
 - MVP execution scope:
-  [001-mvp-prototype-implementation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/001-mvp-prototype-implementation.md)
+  [001-mvp-prototype-implementation.md](plans/001-mvp-prototype-implementation.md)
 - Hardening and load validation:
-  [002-hardening-and-load-validation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/002-hardening-and-load-validation.md)
+  [002-hardening-and-load-validation.md](plans/002-hardening-and-load-validation.md)
 - Identity stitching:
-  [003-identity-stitching-implementation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/003-identity-stitching-implementation.md)
+  [003-identity-stitching-implementation.md](plans/003-identity-stitching-implementation.md)
 - AI audit trail:
-  [docs/dev-log.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/dev-log.md)
+  [docs/dev-log.md](dev-log.md)

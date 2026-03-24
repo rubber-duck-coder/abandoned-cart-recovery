@@ -1869,6 +1869,50 @@ Notes:
 This is a documentation-only improvement. The new screenshots were sourced from the local machine path provided by the user and copied into the repository with cleaner filenames for stable Markdown references.
 ---
 ---
+Timestamp: 2026-03-23 18:06 local
+
+User Request:
+Check the README links, fix the broken solution-overview link in GitHub UI, and ensure the repo-internal documentation links work as expected.
+
+Codex Plan:
+- Audit the Markdown links in `README.md` and `docs/solution-overview.md`.
+- Replace absolute filesystem links with relative repository paths so they resolve in GitHub UI.
+- Keep image references unchanged unless they are also broken.
+
+Actions Taken:
+- Audited Markdown links in `README.md` and `docs/solution-overview.md` with `rg`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+The broken-link investigation is logged and the internal link fix is ready to apply.
+
+Notes:
+The issue is caused by absolute local filesystem paths, which GitHub cannot resolve.
+---
+---
+Timestamp: 2026-03-23 18:07 local
+
+User Request:
+Commit and push the GitHub link-fix updates.
+
+Codex Plan:
+- Publish the verified link fixes in `README.md` and `docs/solution-overview.md`.
+- Include the matching `docs/dev-log.md` update in the same checkpoint.
+- Exclude unrelated untracked `.kotlin/` and `excalidraw.log`, then record the publication result afterward.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Publication planning for the GitHub-safe link fix is recorded. The changes remain local at this point.
+
+Notes:
+This is a documentation-only fix for repo-internal Markdown link portability.
+---
+---
 Timestamp: 2026-03-23 17:40 local
 
 User Request:
