@@ -1821,6 +1821,28 @@ Notes:
 This is the last intended documentation refinement in the current submission-prep sequence.
 ---
 ---
+Timestamp: 2026-03-23 18:03 local
+
+User Request:
+After publishing the screenshot and overview-doc update, add a concise note in `solution-overview.md` about configurable schedule windows, experiments, channels, and future extensibility.
+
+Codex Plan:
+- Record the exact commit and push result for the final `solution-overview.md` refinement.
+- Keep the append-only development log aligned with the published repository state.
+- Leave unrelated untracked `.kotlin/` and `excalidraw.log` untouched.
+
+Actions Taken:
+- Created commit `dfd696e` with the `solution-overview.md` configurability and extensibility notes plus the dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The final `solution-overview.md` refinement is published on `origin/main` in commit `dfd696e`. The overview now concisely explains how schedule windows, experiments, channels, and future extensibility fit into the current architecture.
+
+Notes:
+This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+---
 Timestamp: 2026-03-23 17:58 local
 
 User Request:
