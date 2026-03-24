@@ -54,10 +54,10 @@ Build a runnable local prototype of the abandoned cart recovery system that demo
 
 Implementation should follow these documents in this order:
 
-1. [abandoned-cart-recovery-system.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-system.md)
-2. [abandoned-cart-recovery-data-contracts-and-storage.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md)
-3. [abandoned-cart-recovery-technology-choices.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-technology-choices.md)
-4. [Case study - Staff Engineer for Growth.pdf](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/requirements/Case%20study%20-%20Staff%20Engineer%20for%20Growth.pdf)
+1. [abandoned-cart-recovery-system.md](../rfc/abandoned-cart-recovery-system.md)
+2. [abandoned-cart-recovery-data-contracts-and-storage.md](../rfc/abandoned-cart-recovery-data-contracts-and-storage.md)
+3. [abandoned-cart-recovery-technology-choices.md](../rfc/abandoned-cart-recovery-technology-choices.md)
+4. [Case study - Staff Engineer for Growth.pdf](../requirements/Case%20study%20-%20Staff%20Engineer%20for%20Growth.pdf)
 
 Prototype-specific override:
 

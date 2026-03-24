@@ -1755,6 +1755,79 @@ Notes:
 This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
 ---
 ---
+Timestamp: 2026-03-23 18:17 local
+
+User Request:
+Fix the ghost arrow in the main RFC diagram and quickly check the docs for any other obvious presentation issues.
+
+Codex Plan:
+- Correct the broken branch in the ASCII architecture diagram in the main RFC.
+- Do a quick docs pass focused on visible formatting or linking issues rather than content expansion.
+- Keep the change documentation-only and minimal.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Inspected the architecture diagram in `docs/rfc/abandoned-cart-recovery-system.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+The RFC cleanup step is logged and the diagram fix is ready to apply.
+
+Notes:
+This is a documentation-only cleanup for submission quality.
+---
+---
+Timestamp: 2026-03-23 18:18 local
+
+User Request:
+Fix the ghost arrow in the main RFC diagram and quickly check the docs for any other obvious presentation issues.
+
+Codex Plan:
+- Correct the broken branch in the ASCII architecture diagram in the main RFC.
+- Do a quick docs pass focused on visible formatting or linking issues rather than content expansion.
+- Keep the change documentation-only and minimal.
+
+Actions Taken:
+- Updated `docs/rfc/abandoned-cart-recovery-system.md` to remove the ghost arrow by aligning the analytics branch with both `Notification Adapter` and `Analytics Pipeline`.
+- Converted absolute filesystem links to relative doc links in:
+  - `docs/plans/001-mvp-prototype-implementation.md`
+  - `docs/plans/002-hardening-and-load-validation.md`
+  - `docs/plans/003-identity-stitching-implementation.md`
+  - `docs/runbooks/load-testing.md`
+  - `docs/reports/002-hardening-summary.md`
+  - `docs/reports/002-h5-bottleneck-analysis.md`
+- Ran a docs scan for obvious absolute-path references and formatting issues.
+
+Outcome:
+The main RFC diagram no longer has the dangling extra arrow. The broader docs set is also cleaner now because the remaining absolute filesystem links in plans, runbooks, and reports were converted to relative links that render properly in GitHub UI.
+
+Notes:
+This was a documentation-only cleanup. The unrelated untracked `.kotlin/` and `excalidraw.log` remain untouched.
+---
+---
+Timestamp: 2026-03-23 18:19 local
+
+User Request:
+Push the RFC and docs cleanup.
+
+Codex Plan:
+- Publish the RFC diagram fix and the relative-link cleanup across plans, runbooks, and reports.
+- Stage only the intended documentation files plus the dev log update.
+- Push `main`, then record the publication result in the append-only log.
+
+Actions Taken:
+- Read the current tail of `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Publication planning for the RFC and docs cleanup is recorded. The changes remain local at this point.
+
+Notes:
+This is a documentation-only publish. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+---
 Timestamp: 2026-03-23 18:01 local
 
 User Request:

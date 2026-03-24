@@ -6,9 +6,9 @@ This report consolidates the first local load-validation findings for `Execution
 
 Inputs used:
 
-- [002-h3-smooth-load-baseline.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/reports/002-h3-smooth-load-baseline.md)
-- [002-h4-burst-load-baseline.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/reports/002-h4-burst-load-baseline.md)
-- [002-hybrid-smooth-bursty-baseline.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/reports/002-hybrid-smooth-bursty-baseline.md)
+- [002-h3-smooth-load-baseline.md](./002-h3-smooth-load-baseline.md)
+- [002-h4-burst-load-baseline.md](./002-h4-burst-load-baseline.md)
+- [002-hybrid-smooth-bursty-baseline.md](./002-hybrid-smooth-bursty-baseline.md)
 
 ## Summary Of Measured Runs
 

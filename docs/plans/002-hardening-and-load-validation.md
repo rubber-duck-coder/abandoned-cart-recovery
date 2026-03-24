@@ -27,10 +27,10 @@ Harden the abandoned cart recovery prototype so we can:
 
 This plan should follow these documents in this order:
 
-1. [abandoned-cart-recovery-system.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-system.md)
-2. [abandoned-cart-recovery-data-contracts-and-storage.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-data-contracts-and-storage.md)
-3. [abandoned-cart-recovery-technology-choices.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-technology-choices.md)
-4. [001-mvp-prototype-implementation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/001-mvp-prototype-implementation.md)
+1. [abandoned-cart-recovery-system.md](../rfc/abandoned-cart-recovery-system.md)
+2. [abandoned-cart-recovery-data-contracts-and-storage.md](../rfc/abandoned-cart-recovery-data-contracts-and-storage.md)
+3. [abandoned-cart-recovery-technology-choices.md](../rfc/abandoned-cart-recovery-technology-choices.md)
+4. [001-mvp-prototype-implementation.md](./001-mvp-prototype-implementation.md)
 
 ## Planning Assumptions
 

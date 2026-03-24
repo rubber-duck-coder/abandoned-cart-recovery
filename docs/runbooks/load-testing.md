@@ -180,8 +180,8 @@ python3 scripts/load/generate_mixed_traffic.py \
 
 Summary reports:
 
-- [002-hardening-summary.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/reports/002-hardening-summary.md)
-- [002-h5-bottleneck-analysis.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/reports/002-h5-bottleneck-analysis.md)
+- [002-hardening-summary.md](../reports/002-hardening-summary.md)
+- [002-h5-bottleneck-analysis.md](../reports/002-h5-bottleneck-analysis.md)
 
 ## Notes
 

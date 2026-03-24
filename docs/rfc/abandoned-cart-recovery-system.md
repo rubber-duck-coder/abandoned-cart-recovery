@@ -150,21 +150,16 @@ The system should be designed for production scale first. A smaller MVP prototyp
                           | Publisher             |
                           +-----------------------+
                                     |
-                                    +----------------------+
-                                    |                      |
-                                    v                      v
-                          +-----------------------+
-                          | Notification Adapter  |
-                          +-----------------------+
+                                    +-----------------------+
+                                    |                       |
+                                    v                       v
+                          +-----------------------+  +-----------------------+
+                          | Notification Adapter  |  | Analytics Pipeline    |
+                          +-----------------------+  +-----------------------+
                                     |
                                     v
                           +-----------------------+
                           | Email / Push / SMS    |
-                          +-----------------------+
-                                    |
-                                    v
-                          +-----------------------+
-                          | Analytics Pipeline    |
                           +-----------------------+
 ```
 
