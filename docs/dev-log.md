@@ -1828,6 +1828,77 @@ The final polish review should focus on submission quality, not new scope expans
 ---
 
 ---
+Timestamp: 2026-03-23 17:50 local
+
+User Request:
+Apply the final optional polish before submission.
+
+Codex Plan:
+- Add a short reviewer-oriented quick path near the top of the README.
+- Add a single Makefile verification target so the most important local checks can be run with one command.
+- Verify the new workflow entrypoints before deciding whether to publish them.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Final polish planning is recorded and the repo is ready for the small README and Makefile refinements.
+
+Notes:
+This step is limited to submission-facing ergonomics and does not change system behavior.
+---
+
+---
+Timestamp: 2026-03-23 17:51 local
+
+User Request:
+Apply the final optional polish before submission.
+
+Codex Plan:
+- Add a short reviewer-oriented quick path near the top of the README.
+- Add a single Makefile verification target so the most important local checks can be run with one command.
+- Verify the new workflow entrypoints before deciding whether to publish them.
+
+Actions Taken:
+- Updated `README.md` with a new reviewer path section and the `make verify` command in the common command list.
+- Updated `Makefile` to add the `verify` target and expose it in `make help`.
+- Ran `make help`.
+- Ran `make verify`.
+
+Outcome:
+The final polish is implemented locally. The README now gives a reviewer a fast path through the RFC, plans, dev log, and local verification commands, and the Makefile now includes `make verify` as a single entrypoint for unit tests, integration tests, and health verification. `make verify` passed successfully.
+
+Notes:
+In this Codex environment, `make verify` still requires host-level access because `make health` touches local ports. For a normal repo user with local access, the command is intended to work directly.
+---
+
+---
+Timestamp: 2026-03-23 17:52 local
+
+User Request:
+Commit and push the final polish updates.
+
+Codex Plan:
+- Publish the verified final-polish changes to `README.md`, `Makefile`, and `docs/dev-log.md`.
+- Exclude unrelated untracked `.kotlin/` and `excalidraw.log`.
+- Create the main commit, push it, and then record the publication outcome in the append-only log.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Publication planning for the final polish update is recorded. The changes remain local at this point.
+
+Notes:
+This should be the last workflow/documentation publish before submission.
+---
+
+---
 Timestamp: 2026-03-23 17:49 local
 
 User Request:

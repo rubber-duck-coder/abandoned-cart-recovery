@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: help prereqs build unit integration up down health load-smooth load-burst load-hybrid
+.PHONY: help prereqs build unit integration verify up down health load-smooth load-burst load-hybrid
 
 GRADLE := GRADLE_USER_HOME=.gradle-home ./gradlew
 LOAD := python3 scripts/load/generate_mixed_traffic.py
@@ -11,6 +11,7 @@ help:
 	@echo "  make build         Build the recovery service"
 	@echo "  make unit          Run unit tests"
 	@echo "  make integration   Run integration and E2E tests"
+	@echo "  make verify        Run the main local verification checks"
 	@echo "  make up            Start the local Docker Compose stack"
 	@echo "  make down          Stop the local Docker Compose stack"
 	@echo "  make health        Check health and metrics endpoints"
@@ -51,6 +52,8 @@ unit:
 
 integration:
 	@$(GRADLE) integrationTest
+
+verify: unit integration health
 
 up:
 	@docker compose up --build -d

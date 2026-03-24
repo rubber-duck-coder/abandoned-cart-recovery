@@ -11,6 +11,21 @@ See [load-testing.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/ru
 - unit, integration, and E2E test coverage
 - load-generation scripts and dashboards for local hardening work
 
+## Reviewer Path
+
+If you want the fastest way to understand and verify the submission:
+
+1. Read the architecture in [abandoned-cart-recovery-system.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/rfc/abandoned-cart-recovery-system.md).
+2. Review implementation scope in [001-mvp-prototype-implementation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/001-mvp-prototype-implementation.md), [002-hardening-and-load-validation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/002-hardening-and-load-validation.md), and [003-identity-stitching-implementation.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/plans/003-identity-stitching-implementation.md).
+3. Check the AI audit trail in [docs/dev-log.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/dev-log.md).
+4. Run the quickest local verification path:
+
+```bash
+make prereqs
+make up
+make verify
+```
+
 ## Prerequisites
 
 You need these tools available locally:
@@ -93,6 +108,7 @@ make up
 make down
 make unit
 make integration
+make verify
 ```
 
 Load-test entrypoints:
