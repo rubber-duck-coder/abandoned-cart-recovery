@@ -1778,6 +1778,49 @@ Notes:
 This is a documentation-only sequence. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
 ---
 ---
+Timestamp: 2026-03-23 18:02 local
+
+User Request:
+Commit and push the latest README, screenshot, and overview-documentation updates, then add a concise solution-overview note about schedule windows, experiments, channels, and extensibility.
+
+Codex Plan:
+- Record the exact commit and push result for the screenshot and overview-documentation checkpoint.
+- Keep the append-only development log aligned with the published repository state before starting the follow-up overview refinement.
+- Then perform the small `solution-overview.md` extensibility update as its own logged step.
+
+Actions Taken:
+- Created commit `a2eee40` with the README updates, copied Grafana screenshots, `docs/solution-overview.md`, and the dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The screenshot and overview-documentation checkpoint is published on `origin/main` in commit `a2eee40`. The repository now includes a high-level solution overview document and embedded Grafana screenshots in the README.
+
+Notes:
+This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+---
+Timestamp: 2026-03-23 18:02 local
+
+User Request:
+After publishing the screenshot and overview-doc update, add a concise note in `solution-overview.md` about configurable schedule windows, experiments, channels, and future extensibility.
+
+Codex Plan:
+- Add a short section to `docs/solution-overview.md` that explains what is configurable today.
+- Highlight how schedule timing, experiment assignment, and channel selection can evolve without rewriting core architecture.
+- Keep the change concise and documentation-only.
+
+Actions Taken:
+- Read `docs/solution-overview.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Planning for the follow-up `solution-overview.md` refinement is recorded. The file has not been edited yet.
+
+Notes:
+This is the last intended documentation refinement in the current submission-prep sequence.
+---
+---
 Timestamp: 2026-03-23 17:58 local
 
 User Request:

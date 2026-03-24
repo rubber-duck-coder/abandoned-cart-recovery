@@ -47,6 +47,17 @@ This repository contains a local, end-to-end abandoned cart recovery prototype d
 - local dashboards and reports for smooth, burst, and hybrid load behavior
 - append-only dev log showing the AI-assisted implementation and refinement path
 
+## Configurability And Extensibility
+
+- Schedule windows:
+  recovery touches are policy-driven, so timings like `24h`, `72h`, and `7d` can be changed by updating policy configuration rather than rewriting the scheduler.
+- Experiments:
+  experiment evaluation is isolated behind the policy and experiment boundary, so cadence, template family, and variant attribution can evolve without changing the core ingestion or execution flow.
+- Channels:
+  the system already models channel-specific attempts such as push, SMS, and email; new channel mixes or channel ordering can be introduced through policy changes and adapter extensions.
+- Future growth:
+  the current architecture leaves room for richer eligibility checks, real provider integrations, stronger experimentation hooks, ML-driven policy selection, and more production-grade operational controls without changing the core event-driven shape.
+
 ## Best Entry Points
 
 - Architecture:
