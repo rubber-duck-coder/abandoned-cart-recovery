@@ -23,7 +23,6 @@ Completed
 - no distinct `policy_selected` analytics event is emitted today; policy attribution is present on `attempt_scheduled` instead
 - there is no dedicated full-flow replay E2E test proving duplicate upstream events do not lead to duplicate sends end to end
 - some planned edge-case checks are implemented in behavior but not yet called out by dedicated tests, especially malformed-event handling and expired-lease recovery assertions
-- anonymous-to-known identity stitching is represented in the RFCs, schema, and state fields, but there is no dedicated implementation slice or E2E test that proves a first-class identity-link flow end to end
 
 These are improvement candidates, not MVP-scope blockers for the take-home deliverable.
 

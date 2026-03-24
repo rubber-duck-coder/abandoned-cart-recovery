@@ -1754,6 +1754,29 @@ The M6 scheduling checkpoint is published on `origin/main` in commit `8736660`. 
 Notes:
 This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
 ---
+---
+Timestamp: 2026-03-23 17:40 local
+
+User Request:
+Commit and push the latest documentation updates after verification.
+
+Codex Plan:
+- Publish the verified documentation-only changes for the plan cleanup and the new future-improvements backlog.
+- Stage only `docs/plans/001-mvp-prototype-implementation.md`, `docs/plans/005-future-improvements-and-perfection.md`, and `docs/dev-log.md`.
+- Exclude unrelated untracked `.kotlin/` and `excalidraw.log`, then create the commit, push `main`, and record the publication result.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Publication planning for the latest documentation updates is recorded. The verified changes remain local at this point.
+
+Notes:
+This publish is documentation-only and follows successful unit, integration, and representative load verification.
+---
 
 ---
 Timestamp: 2026-03-23 17:29 local
@@ -1799,6 +1822,157 @@ The identity-stitching checkpoint is published on `origin/main` in commit `bd7df
 
 Notes:
 This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+
+---
+Timestamp: 2026-03-23 17:31 local
+
+User Request:
+Review execution plans 001, 002, and 003 and verify whether the implementation achieved everything intended.
+
+Codex Plan:
+- Read the current plan documents and compare their stated end state against the repository’s implemented behavior.
+- Check the requirement document in `docs/requirements` to verify whether any functional or non-functional expectations remain uncovered.
+- Summarize what is complete, what is partial, and what follow-up work is still optional versus required.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the tail of `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Plan-review work is now logged and can proceed.
+
+Notes:
+This review may surface small residual gaps even if the three plans are broadly complete. No code or config changes are planned for this step unless the assessment requires a documentation correction later.
+---
+
+---
+Timestamp: 2026-03-23 17:34 local
+
+User Request:
+Update the relevant plans after the review and add a new `005` plan capturing future improvements that would move the prototype closer to perfection.
+
+Codex Plan:
+- Remove stale deferred items from `001` so it reflects the now-completed identity-stitching work.
+- Create a new `005` future-improvements plan that collects the remaining optional hardening, analytics, test, and production-readiness gaps.
+- Keep the update documentation-only and aligned with the current repository state rather than inventing new scope.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+The documentation-cleanup and future-improvements planning task is now logged and ready for execution.
+
+Notes:
+This step should leave `001` consistent with completed work and create a clean backlog document for follow-up improvement ideas without changing accepted MVP scope.
+---
+
+---
+Timestamp: 2026-03-23 17:37 local
+
+User Request:
+Run the unit tests, integration tests, and load tests before committing and pushing the latest documentation updates.
+
+Codex Plan:
+- Run the unit suite and full integration suite first to confirm the codebase is still green.
+- Bring up the local stack if needed and run representative smooth, burst, and smooth-bursty load profiles from the runbook.
+- Summarize the verification outcome before deciding whether the pending doc changes are ready to publish.
+
+Actions Taken:
+- Read the current tail of `docs/dev-log.md`.
+- Read `docs/runbooks/load-testing.md`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Verification planning for tests and load runs is recorded. Execution has not started yet.
+
+Notes:
+This step is intended to validate the current repository state before publishing the latest documentation-only updates.
+---
+
+---
+Timestamp: 2026-03-23 17:39 local
+
+User Request:
+Run the unit tests, integration tests, and load tests before committing and pushing the latest documentation updates.
+
+Codex Plan:
+- Run the unit suite and full integration suite first to confirm the codebase is still green.
+- Bring up the local stack if needed and run representative smooth, burst, and smooth-bursty load profiles from the runbook.
+- Summarize the verification outcome before deciding whether the pending doc changes are ready to publish.
+
+Actions Taken:
+- Ran `docker compose up --build -d`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest`.
+- Ran `curl -sf http://localhost:8080/health`.
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile smooth --events-per-second 20 --ramp-seconds 3 --sustain-seconds 6 --cooldown-seconds 1 --cart-count 400`.
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile burst --events-per-second 20 --ramp-seconds 3 --burst-seconds 6 --cooldown-seconds 1 --burst-multiplier 4 --cart-count 400`.
+- Ran `python3 scripts/load/generate_mixed_traffic.py --profile smooth-bursty --events-per-second 20 --ramp-seconds 3 --sustain-seconds 15 --burst-seconds 4 --burst-period-seconds 6 --cooldown-seconds 1 --burst-multiplier 4 --cart-count 600`.
+- Ran `curl -sf http://localhost:9464/metrics`.
+- Ran `curl -sf http://localhost:9090/-/healthy`.
+- Ran `docker compose ps`.
+- Ran `docker compose exec -T prometheus wget -qO- http://localhost:9090/-/healthy`.
+- Ran `docker compose logs --tail=40 prometheus`.
+
+Outcome:
+The verification passed overall. Unit tests and integration tests both succeeded. The local stack rebuilt and started cleanly, and the recovery service health endpoint stayed healthy after the runs. Representative load profiles for smooth, burst, and smooth-bursty traffic all completed successfully:
+- smooth: `166` total events in about `10.03s`
+- burst: `526` total events in about `10.03s`
+- smooth-bursty: `766` total events in about `19.07s`
+
+The metrics endpoint remained live and reflected the exercised pipeline counters for scheduling, dispatch, execution, analytics, and database state. Host-side `curl http://localhost:9090/-/healthy` returned connection refused in this environment, but Prometheus itself is healthy inside the container and `docker compose ps` shows the service as up.
+
+Notes:
+The Prometheus host-port behavior appears to be an environment-specific access quirk rather than a broken container. This verification step validates the current repo state before publishing the pending documentation-only updates.
+---
+
+---
+Timestamp: 2026-03-23 17:35 local
+
+User Request:
+Update the relevant plans after the review and add a new `005` plan capturing future improvements that would move the prototype closer to perfection.
+
+Codex Plan:
+- Remove stale documentation in `001` so it no longer lists completed identity-stitching work as deferred.
+- Add a new `005` plan that collects the remaining optional improvements into a structured follow-up backlog.
+- Keep the changes aligned with the current implementation rather than expanding accepted scope.
+
+Actions Taken:
+- Updated `docs/plans/001-mvp-prototype-implementation.md` to remove the stale deferred item about identity stitching.
+- Added `docs/plans/005-future-improvements-and-perfection.md`.
+
+Outcome:
+The plan set is now more consistent with the implemented repository state. `001` no longer contradicts the completed `003` work, and `005` provides a clear future-improvements backlog covering analytics depth, replay/idempotency confidence, failure and edge-case coverage, test-environment isolation, and production-readiness hardening.
+
+Notes:
+This was a documentation-only cleanup. No code, config, or test behavior changed.
+---
+
+---
+Timestamp: 2026-03-23 17:32 local
+
+User Request:
+Review execution plans 001, 002, and 003 and verify whether the implementation achieved everything intended.
+
+Codex Plan:
+- Compare each plan’s stated end state with the current repository artifacts and tests.
+- Cross-check the requirement document in `docs/requirements` for any missed functional or non-functional expectations.
+- Call out documentation drift separately from actual implementation gaps.
+
+Actions Taken:
+- Read `docs/plans/001-mvp-prototype-implementation.md`, `docs/plans/002-hardening-and-load-validation.md`, and `docs/plans/003-identity-stitching-implementation.md`.
+- Read `docs/requirements/Case study - Staff Engineer for Growth.pdf` via `pdftotext -layout`.
+- Inspected repository artifacts under `apps/recovery-service/src/main/kotlin`, `apps/recovery-service/src/integrationTest/kotlin`, `docs/runbooks`, and `docs/reports`.
+
+Outcome:
+The implementation substantially meets the intended scope of all three plans. `001` is complete as an MVP prototype, `002` is complete for local hardening and load validation, and `003` is complete for cart-scoped anonymous-to-known identity stitching. The main remaining issue found in this review is documentation drift: `001` still lists identity stitching as a deferred follow-up even though `003` completed it. There are also a few optional hardening gaps that remain deferred rather than missing from the accepted scope.
+
+Notes:
+The remaining deferred items are mostly polish or production-hardening depth, not blockers for the take-home deliverable. The clearest next cleanup would be to update `001` so its deferred follow-up list matches the now-completed `003` work.
 ---
 
 ---
