@@ -1913,6 +1913,28 @@ Notes:
 This is a documentation-only fix for repo-internal Markdown link portability.
 ---
 ---
+Timestamp: 2026-03-23 18:07 local
+
+User Request:
+Commit and push the GitHub link-fix updates.
+
+Codex Plan:
+- Record the exact commit and push result for the documentation link fix.
+- Keep the append-only development log aligned with the published repository history.
+- Leave unrelated untracked `.kotlin/` and `excalidraw.log` untouched.
+
+Actions Taken:
+- Created commit `fe12c0d` with the GitHub-safe relative link updates in `README.md`, `docs/solution-overview.md`, and the dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The GitHub documentation-link fix is published on `origin/main` in commit `fe12c0d`. Repo-internal links in the README and the solution overview now use relative paths that work in GitHub UI.
+
+Notes:
+This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+---
 Timestamp: 2026-03-23 17:40 local
 
 User Request:
