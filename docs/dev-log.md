@@ -1779,6 +1779,29 @@ This publish includes both the completed identity-stitching slice and the earlie
 ---
 
 ---
+Timestamp: 2026-03-23 17:30 local
+
+User Request:
+Commit, push, and move forward after completing the identity-stitching work.
+
+Codex Plan:
+- Record the exact commit and push result for the identity-stitching checkpoint.
+- Keep the append-only development log aligned with the published repository state.
+- Leave unrelated untracked `.kotlin/` and `excalidraw.log` untouched.
+
+Actions Taken:
+- Created commit `bd7df01` with the identity-stitching completion, the `src/integrationTest` source-set move, and the related README/build/plan updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The identity-stitching checkpoint is published on `origin/main` in commit `bd7df01`. The repository now includes the completed `003` plan state, the stitched anonymous-to-known E2E flow, and the dedicated `integrationTest` source-set structure.
+
+Notes:
+This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+
+---
 Timestamp: 2026-03-23 17:08 local
 
 User Request:
