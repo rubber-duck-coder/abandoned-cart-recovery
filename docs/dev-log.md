@@ -1779,6 +1779,29 @@ This checkpoint includes both the identity-stitching implementation work in prog
 ---
 
 ---
+Timestamp: 2026-03-23 17:09 local
+
+User Request:
+Commit, push, and move forward with the current local changes.
+
+Codex Plan:
+- Publish the current identity-stitching and test-workflow changes as one checkpoint.
+- Exclude unrelated local artifacts such as `.kotlin/` and `excalidraw.log`.
+- Push `main` after the commit succeeds so the repo is ready for the next implementation slice.
+
+Actions Taken:
+- Staged the tracked repository changes.
+- Created commit `0e2ef2f` with the current identity-stitching and test-workflow updates.
+- Pushed `main` to `origin` with `git push origin main`.
+
+Outcome:
+The current checkpoint is published on `origin/main` in commit `0e2ef2f`. It includes the explicit `identity_linked` handling work in progress, scheduled-attempt rebinding support, and the new Gradle split between unit tests and integration or E2E tests.
+
+Notes:
+The unit-only and targeted integration commands passed before publication, but the full mixed verification path still needs further stabilization in a future slice. The unrelated untracked `.kotlin/` directory and `excalidraw.log` remain excluded.
+---
+
+---
 Timestamp: 2026-03-23 16:33 local
 
 User Request:
