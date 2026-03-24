@@ -1755,6 +1755,55 @@ Notes:
 This log entry itself is local until it is included in the follow-up log-only commit. The unrelated untracked file `excalidraw.log` remains excluded.
 ---
 ---
+Timestamp: 2026-03-23 18:01 local
+
+User Request:
+Commit and push the latest README, screenshot, and overview-documentation updates, then add a concise solution-overview note about schedule windows, experiments, channels, and extensibility.
+
+Codex Plan:
+- Publish the current documentation changes first: README updates, copied screenshot assets, and the new solution overview doc.
+- Record that publication in the append-only log before starting the follow-up overview refinement.
+- Then update `docs/solution-overview.md` with a short section on configurable schedules, experiments, channels, and extensibility, and publish that as a second small doc checkpoint.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the current tail of `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry to `docs/dev-log.md`.
+
+Outcome:
+Publication planning for the screenshot and overview-doc checkpoint is recorded. The changes remain local at this point.
+
+Notes:
+This is a documentation-only sequence. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+---
+Timestamp: 2026-03-23 17:58 local
+
+User Request:
+Add Grafana screenshots and clearer Grafana instructions to the README, and add a one-page high-level solution/codebase overview linked near the top of the README.
+
+Codex Plan:
+- Copy the provided screenshots into the repository under stable filenames.
+- Add a concise one-page solution overview document under `docs/`.
+- Update the README top section and load-testing section to reference the new overview, explain how to open Grafana locally, and embed the screenshots.
+
+Actions Taken:
+- Copied the provided screenshot files into `docs/assets/screenshots/` as:
+  - `grafana-kafka-pipeline.png`
+  - `grafana-scheduling-db.png`
+  - `grafana-resources-errors.png`
+- Added `docs/solution-overview.md`.
+- Updated `README.md`.
+- Verified asset paths with `rg --files docs/assets/screenshots docs/solution-overview.md`.
+
+Outcome:
+The README now has a clearer submission entrypoint, explicit Grafana access instructions, and embedded local dashboard screenshots in the load-testing section. The repository also now includes a one-page `docs/solution-overview.md` that explains the system and codebase at a high level.
+
+Notes:
+This is a documentation-only improvement. The new screenshots were sourced from the local machine path provided by the user and copied into the repository with cleaner filenames for stable Markdown references.
+---
+---
 Timestamp: 2026-03-23 17:40 local
 
 User Request:

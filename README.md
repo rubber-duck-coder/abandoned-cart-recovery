@@ -2,6 +2,9 @@
 
 Monorepo for the abandoned cart recovery prototype.
 
+Start here for the high-level solution and codebase walkthrough:
+[solution-overview.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/solution-overview.md)
+
 See [load-testing.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/runbooks/load-testing.md) for the local hardening and load-test workflow.
 
 ## What This Repo Gives You
@@ -218,6 +221,26 @@ Grafana provisions a starter dashboard pack automatically:
 
 ## Load Testing
 
+Start the stack first:
+
+```bash
+make up
+```
+
+Open Grafana locally:
+
+- URL: `http://localhost:3000`
+- username: `admin`
+- password: `admin`
+
+Recommended dashboard order:
+
+1. `System Overview`
+2. `Kafka Health`
+3. `Database Health`
+4. `Execution Health`
+5. `Resource View`
+
 Use the Make targets for the common load profiles:
 
 ```bash
@@ -225,5 +248,25 @@ make load-smooth
 make load-burst
 make load-hybrid
 ```
+
+Smoke-run example:
+
+```bash
+make load-smooth LOAD_ARGS="--events-per-second 12 --ramp-seconds 2 --sustain-seconds 4 --cooldown-seconds 1 --cart-count 200"
+```
+
+Sample Grafana views from the local load workflow:
+
+Kafka and pipeline throughput:
+
+![Grafana Kafka and pipeline throughput](docs/assets/screenshots/grafana-kafka-pipeline.png)
+
+Scheduling, execution, and database health:
+
+![Grafana scheduling and DB health](docs/assets/screenshots/grafana-scheduling-db.png)
+
+Resource usage and error-rate view:
+
+![Grafana resource and error view](docs/assets/screenshots/grafana-resources-errors.png)
 
 For deeper tuning workflows and the full set of load-test commands, see [load-testing.md](/Users/ninadsindu/Projects/abandoned-cart-recovery/docs/runbooks/load-testing.md).
