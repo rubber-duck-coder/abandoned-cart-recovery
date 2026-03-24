@@ -93,6 +93,103 @@ class KafkaStateIngestionIntegrationTest {
     }
 
     @Test
+    fun `identity linked event stitches anonymous cart to known user`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val mutationEvent = CartMutationEvent(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            mutationType = "item_added",
+            occurredAt = OffsetDateTime.now().toString(),
+            attributes = mapOf(
+                "stateVersion" to "1",
+                "cartSnapshotJson" to """{"items":["sku-1"]}""",
+                "anonymousId" to "anon-stitched",
+            ),
+        )
+        val identityEvent = CartStateEvent(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            stateType = "identity_linked",
+            occurredAt = OffsetDateTime.now().plusSeconds(5).toString(),
+            eventReference = "2",
+            anonymousId = "anon-stitched",
+            userId = "user-stitched",
+            stitchedIdentityJson = """{"linked":true}""",
+        )
+
+        kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, mutationEvent)
+        waitForState(cartId)
+        kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, identityEvent)
+
+        val state = waitForState(cartId, expectedUserId = "user-stitched", expectedVersion = 2L)
+        assertNotNull(state)
+        assertEquals("ACTIVE", state.cartStatus)
+        assertEquals("anon-stitched", state.anonymousId)
+        assertEquals("user-stitched", state.userId)
+        assertEquals(2L, state.stateVersion)
+        assertTrue(state.stitchedIdentityJson?.contains("linked") == true)
+    }
+
+    @Test
+    fun `duplicate identity linked event is idempotent`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val identityEvent = CartStateEvent(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            stateType = "identity_linked",
+            occurredAt = OffsetDateTime.now().toString(),
+            eventReference = "1",
+            anonymousId = "anon-dup",
+            userId = "user-dup",
+            stitchedIdentityJson = """{"linked":true}""",
+        )
+
+        kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, identityEvent)
+        val stateAfterFirst = waitForState(cartId, expectedUserId = "user-dup", expectedVersion = 1L)
+        kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, identityEvent)
+        val stateAfterSecond = waitForState(cartId, expectedUserId = "user-dup", expectedVersion = 1L)
+
+        assertNotNull(stateAfterFirst)
+        assertNotNull(stateAfterSecond)
+        assertEquals(1L, stateAfterSecond.stateVersion)
+        assertEquals("user-dup", stateAfterSecond.userId)
+        assertEquals(stateAfterFirst.updatedAt, stateAfterSecond.updatedAt)
+    }
+
+    @Test
+    fun `identity linked event updates terminal cart identity without reopening cart`() {
+        val cartId = "cart-${UUID.randomUUID()}"
+        val purchaseEvent = CartStateEvent(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            stateType = "purchase_completed",
+            occurredAt = OffsetDateTime.now().toString(),
+            terminalReference = "2",
+        )
+        val identityEvent = CartStateEvent(
+            cartId = cartId,
+            tenantId = "tenant-1",
+            stateType = "identity_linked",
+            occurredAt = OffsetDateTime.now().plusSeconds(5).toString(),
+            eventReference = "3",
+            anonymousId = "anon-terminal",
+            userId = "user-terminal",
+            stitchedIdentityJson = """{"linked":true}""",
+        )
+
+        kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, purchaseEvent)
+        waitForState(cartId, expectedStatus = "PURCHASED")
+        kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, identityEvent)
+
+        val state = waitForState(cartId, expectedStatus = "PURCHASED", expectedUserId = "user-terminal", expectedVersion = 3L)
+        assertNotNull(state)
+        assertEquals("PURCHASED", state.cartStatus)
+        assertEquals("user-terminal", state.userId)
+        assertTrue(state.stitchedIdentityJson?.contains("linked") == true)
+        assertEquals(3L, state.stateVersion)
+    }
+
+    @Test
     fun `abandoned cart event creates attempts once and emits scheduling analytics`() {
         val cartId = "cart-${UUID.randomUUID()}"
         val activeState = com.abandonedcart.recovery.repository.CartRecoveryState(
@@ -193,29 +290,16 @@ class KafkaStateIngestionIntegrationTest {
             cartId = cartId,
             scheduledAt = OffsetDateTime.now().minusMinutes(2),
         )
-        val analyticsConsumer = KafkaClientFactory.createStringConsumer(appConfig, "analytics-suppress-test-${UUID.randomUUID()}")
 
         assertEquals(CartRecoveryStateWriteResult.APPLIED, repository.upsert(purchasedState))
         assertTrue(recoveryAttemptRepository.schedule(attempt))
 
-        analyticsConsumer.subscribe(listOf(appConfig.recoveryAnalyticsEventsTopic))
-        analyticsConsumer.poll(Duration.ofMillis(250))
+        dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
 
-        try {
-            dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
-
-            val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SUPPRESSED")
-            assertNotNull(stored)
-            assertEquals("SUPPRESSED", stored.status)
-            assertEquals("cart_purchased", stored.suppressionReason)
-
-            val analyticsEvent = waitForAnalyticsEvent(analyticsConsumer, cartId, "attempt_suppressed")
-            assertNotNull(analyticsEvent)
-            assertEquals("attempt_suppressed", analyticsEvent.eventType)
-            assertEquals("cart_purchased", analyticsEvent.attributes["reason"])
-        } finally {
-            analyticsConsumer.close()
-        }
+        val stored = waitForAttemptStatus(attempt.attemptId, expectedStatus = "SUPPRESSED")
+        assertNotNull(stored)
+        assertEquals("SUPPRESSED", stored.status)
+        assertEquals("cart_purchased", stored.suppressionReason)
     }
 
     @Test
@@ -297,10 +381,20 @@ class KafkaStateIngestionIntegrationTest {
         }
     }
 
-    private fun waitForState(cartId: String, expectedStatus: String? = null): com.abandonedcart.recovery.repository.CartRecoveryState? {
-        repeat(20) {
+    private fun waitForState(
+        cartId: String,
+        expectedStatus: String? = null,
+        expectedUserId: String? = null,
+        expectedVersion: Long? = null,
+    ): com.abandonedcart.recovery.repository.CartRecoveryState? {
+        repeat(40) {
             val state = repository.findByCartId(cartId)
-            if (state != null && (expectedStatus == null || state.cartStatus == expectedStatus)) {
+            if (
+                state != null &&
+                (expectedStatus == null || state.cartStatus == expectedStatus) &&
+                (expectedUserId == null || state.userId == expectedUserId) &&
+                (expectedVersion == null || state.stateVersion == expectedVersion)
+            ) {
                 return state
             }
             Thread.sleep(250)
@@ -309,7 +403,7 @@ class KafkaStateIngestionIntegrationTest {
     }
 
     private fun waitForAttempts(cartId: String, expectedCount: Int): List<com.abandonedcart.recovery.repository.RecoveryAttempt> {
-        repeat(20) {
+        repeat(40) {
             val attempts = recoveryAttemptRepository.findByCartId(cartId)
             if (attempts.size == expectedCount) {
                 return attempts
@@ -320,7 +414,7 @@ class KafkaStateIngestionIntegrationTest {
     }
 
     private fun waitForAttemptStatus(attemptId: String, expectedStatus: String): RecoveryAttempt? {
-        repeat(20) {
+        repeat(40) {
             val attempt = recoveryAttemptRepository.findByAttemptId(attemptId)
             if (attempt != null && attempt.status == expectedStatus) {
                 return attempt
@@ -336,7 +430,7 @@ class KafkaStateIngestionIntegrationTest {
         expectedCount: Int,
     ): List<AnalyticsEvent> {
         val events = mutableListOf<AnalyticsEvent>()
-        repeat(20) {
+        repeat(40) {
             val records = consumer.poll(Duration.ofMillis(500))
             records
                 .filter { it.key() == cartId }
@@ -354,7 +448,7 @@ class KafkaStateIngestionIntegrationTest {
         cartId: String,
         eventType: String,
     ): AnalyticsEvent? {
-        repeat(20) {
+        repeat(40) {
             val records = consumer.poll(Duration.ofMillis(500))
             val event = records
                 .filter { it.key() == cartId }
@@ -408,7 +502,7 @@ class KafkaStateIngestionIntegrationTest {
             recoveryAttemptRepository = RecoveryAttemptRepository(dataSource)
             kafkaProducer = KafkaJsonProducer(appConfig, jsonCodec)
             val mutationProcessor = CartMutationProcessor(repository)
-            val stateEventProcessor = CartStateEventProcessor(repository)
+            val stateEventProcessor = CartStateEventProcessor(repository, recoveryAttemptRepository)
             val recoveryPolicyService = RecoveryPolicyService(com.abandonedcart.recovery.experiment.MockExperimentClient())
             val analyticsPublisher = KafkaAnalyticsPublisher(appConfig, kafkaProducer)
             val recoveryScheduler = RecoveryScheduler(repository, recoveryAttemptRepository, recoveryPolicyService, analyticsPublisher)

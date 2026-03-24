@@ -25,6 +25,18 @@ Build the recovery service:
 ./gradlew build
 ```
 
+Run unit tests only:
+
+```bash
+./gradlew test
+```
+
+Run integration and E2E tests only:
+
+```bash
+./gradlew integrationTest
+```
+
 The build also prepares the local distribution zip used by the Docker image:
 
 ```bash
@@ -66,19 +78,19 @@ curl -sf http://localhost:9464/metrics | head -n 10
 Run the repository integration tests against the local Compose Postgres:
 
 ```bash
-GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Repository*'
+GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests '*Repository*'
 ```
 
 Run the Kafka contract and wiring tests against the local Compose Kafka broker:
 
 ```bash
-GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Contract*'
+GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests '*Contract*'
 ```
 
 Run the processor integration test for Kafka-to-Postgres state ingestion:
 
 ```bash
-GRADLE_USER_HOME=.gradle-home ./gradlew test --tests 'com.abandonedcart.recovery.processor.KafkaStateIngestionIntegrationTest'
+GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests 'com.abandonedcart.recovery.processor.KafkaStateIngestionIntegrationTest'
 ```
 
 Useful endpoints:

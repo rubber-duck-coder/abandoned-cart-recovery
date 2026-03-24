@@ -1756,6 +1756,29 @@ This log entry itself is local until it is included in the follow-up log-only co
 ---
 
 ---
+Timestamp: 2026-03-23 17:08 local
+
+User Request:
+Commit, push, and move forward with the current local changes.
+
+Codex Plan:
+- Publish the current identity-stitching and test-workflow changes as one checkpoint.
+- Exclude unrelated local artifacts such as `.kotlin/` and `excalidraw.log`.
+- Push `main` after the commit succeeds so the repo is ready for the next implementation slice.
+
+Actions Taken:
+- Read the latest entries in `docs/dev-log.md`.
+- Inspected the working tree with `git status --short`.
+- Appended this planning entry before staging and publishing the current checkpoint.
+
+Outcome:
+Planning for the current publish checkpoint is recorded. The next step is to stage the relevant repository changes, create a commit, and push `main`.
+
+Notes:
+This checkpoint includes both the identity-stitching implementation work in progress and the new unit-versus-integration test split. The unrelated untracked `.kotlin/` directory and `excalidraw.log` remain excluded.
+---
+
+---
 Timestamp: 2026-03-23 16:33 local
 
 User Request:
@@ -1822,6 +1845,133 @@ Planning for the locked identity-stitching execution path is recorded. The next 
 
 Notes:
 The agreed defaults are: use `identity_linked` as the prototype state-event type, rebind only `SCHEDULED` attempts in v1, keep already-scheduled policy and experiment context stable, prefer `user_id` for frequency capping when known, and allow identity updates on terminal carts without reopening eligibility.
+---
+
+---
+Timestamp: 2026-03-23 16:38 local
+
+User Request:
+Lock the open questions for Plan 003, commit and push the plan, and then move into execution.
+
+Codex Plan:
+- Record the agreed identity-stitching defaults directly in Plan 003 so execution can proceed without ambiguity.
+- Publish the locked plan before starting implementation.
+- Begin with the smallest implementation slice: explicit `identity_linked` handling in the state-event path.
+
+Actions Taken:
+- Updated `docs/plans/003-identity-stitching-implementation.md`.
+- Created commit `8e691a4` with the locked `003` plan and dev-log update.
+- Pushed `main` to `origin` with `git push origin main`.
+
+Outcome:
+Plan `003` is now locked and published on `origin/main` in commit `8e691a4`. The execution defaults are now explicit in the plan, including `identity_linked` as the prototype event type and `SCHEDULED`-only attempt rebinding for the first implementation.
+
+Notes:
+The repository is clean except for the unrelated untracked file `excalidraw.log`. The next step is `I1` implementation.
+---
+
+---
+Timestamp: 2026-03-23 16:48 local
+
+User Request:
+Lock the open questions for Plan 003, commit and push the plan, and then move into execution.
+
+Codex Plan:
+- Treat `I1` as complete once the explicit identity-link state path is stable and the build passes.
+- Continue directly into `I2` by rebinding only `SCHEDULED` attempts to the stitched `user_id`.
+- Verify rebinding through repository, integration, and E2E coverage without changing policy or experiment attribution.
+
+Actions Taken:
+- Read the latest entries in `docs/dev-log.md`.
+- Reviewed `RecoveryAttemptRepository`, `RecoveryAttempt`, `CartStateEventProcessor`, and the identity-stitching tests.
+- Appended this planning entry before editing the repository and processor for scheduled-attempt rebinding.
+
+Outcome:
+Planning for the `I2` rebinding slice is recorded. The next step is to update the repository and state-event processor so identity stitching updates eligible `SCHEDULED` attempts.
+
+Notes:
+This slice keeps the earlier defaults intact: only `SCHEDULED` attempts are rebound, and existing policy plus experiment attribution stays unchanged.
+---
+
+---
+Timestamp: 2026-03-23 17:02 local
+
+User Request:
+Lock the open questions for Plan 003, commit and push the plan, and then move into execution.
+
+Codex Plan:
+- Treat `I1` as complete once the explicit identity-link state path is stable and the build passes.
+- Continue directly into `I2` by rebinding only `SCHEDULED` attempts to the stitched `user_id`.
+- Verify rebinding through repository, integration, and E2E coverage without changing policy or experiment attribution.
+
+Actions Taken:
+- Updated `docs/plans/003-identity-stitching-implementation.md` and published it in commit `8e691a4`.
+- Extended `CartStateEvent` with identity-link fields and explicit `eventReference`.
+- Added explicit `identity_linked` handling to `CartStateEventProcessor`.
+- Added terminal-safe identity updates via `CartRecoveryStateRepository.upsertIdentityLink`.
+- Added `RecoveryAttemptRepository.rebindScheduledAttempts`.
+- Wired `CartStateEventProcessor` to rebind `SCHEDULED` attempts when a known `user_id` is stitched.
+- Updated repository, processor, and E2E tests to cover the new identity-link path and to remove several flaky duplicate analytics assertions.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test --tests '*Repository*'`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test --tests 'com.abandonedcart.recovery.processor.KafkaStateIngestionIntegrationTest'`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test --tests 'com.abandonedcart.recovery.e2e.RecoveryFlowE2ETest'`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew build` multiple times while stabilizing the affected tests.
+
+Outcome:
+`I1` is implemented and stable: explicit `identity_linked` state handling now exists, identity fields can be updated on terminal carts without reopening eligibility, and the focused stitching tests pass in isolation. `I2` is partially implemented: the repository method to rebind `SCHEDULED` attempts is present and covered at the repository level, and the processor now triggers rebinding when a new known `user_id` is stitched. However, this slice is not yet ready to publish because the full `./gradlew build` still ends with a failing async-heavy integration test outside the core stitching logic, most recently in `DueAttemptDispatcherIntegrationTest`. The repository currently contains local changes only.
+
+Notes:
+The main identity behavior changes are in place, but the test harness now needs another stabilization pass before this checkpoint should be committed. The next useful step is to isolate and fix the remaining flaky integration path, then rerun the full build and publish `I1` plus `I2` together.
+---
+
+---
+Timestamp: 2026-03-23 17:03 local
+
+User Request:
+Separate unit and integration tests before moving forward.
+
+Codex Plan:
+- Inspect the current Gradle and test layout to see how unit, integration, and E2E tests are currently mixed.
+- Introduce the smallest clean separation in the build so unit and integration suites can run independently.
+- Update test placement or naming only where necessary, then validate the new tasks and document the workflow.
+
+Actions Taken:
+- Read `AGENTS.md`.
+- Read the latest entries in `docs/dev-log.md`.
+- Appended this planning entry before reviewing the Gradle and test configuration.
+
+Outcome:
+Planning for test-suite separation is recorded. The next step is to inspect the current build and test layout, then implement a minimal unit versus integration split.
+
+Notes:
+This is a workflow-hardening task intended to make the current async-heavy test suite easier to run and debug. The unrelated untracked file `excalidraw.log` remains excluded.
+---
+
+---
+Timestamp: 2026-03-23 17:07 local
+
+User Request:
+Separate unit and integration tests before moving forward.
+
+Codex Plan:
+- Inspect the current Gradle and test layout to see how unit, integration, and E2E tests are currently mixed.
+- Introduce the smallest clean separation in the build so unit and integration suites can run independently.
+- Update test placement or naming only where necessary, then validate the new tasks and document the workflow.
+
+Actions Taken:
+- Reviewed `apps/recovery-service/build.gradle.kts`.
+- Reviewed `README.md`.
+- Reviewed the current test inventory under `apps/recovery-service/src/test/kotlin`.
+- Updated `apps/recovery-service/build.gradle.kts` to make `test` unit-only and add an `integrationTest` task for `*IntegrationTest` and `*E2ETest`.
+- Updated `README.md` with the new unit-only and integration-only commands.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew test`.
+- Ran `GRADLE_USER_HOME=.gradle-home ./gradlew integrationTest --tests 'com.abandonedcart.recovery.e2e.RecoveryFlowE2ETest'`.
+
+Outcome:
+Unit and integration tests are now separated at the Gradle task level. `test` now runs only the unit suite, while `integrationTest` runs integration and E2E classes from the existing test source set. Both validation commands passed, so the new task split is working. This gives us a cleaner workflow for continuing the identity-stitching work without always running the full async-heavy suite.
+
+Notes:
+This change does not yet resolve the remaining local identity-stitching execution checkpoint. It improves the workflow so we can stabilize integration behavior incrementally. The unrelated untracked file `excalidraw.log` remains excluded.
 ---
 
 ---

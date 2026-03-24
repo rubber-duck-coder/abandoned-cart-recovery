@@ -105,9 +105,10 @@ class AppModule(
     @Singleton
     fun provideCartStateEventProcessor(
         repository: CartRecoveryStateRepository,
+        recoveryAttemptRepository: RecoveryAttemptRepository,
         recoveryMetrics: RecoveryMetrics,
     ): CartStateEventProcessor =
-        CartStateEventProcessor(repository, recoveryMetrics)
+        CartStateEventProcessor(repository, recoveryAttemptRepository, recoveryMetrics)
 
     @Provides
     @Singleton

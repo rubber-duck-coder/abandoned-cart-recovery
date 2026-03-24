@@ -49,6 +49,34 @@ class RepositoryIntegrationTest {
     }
 
     @Test
+    fun `identity link updates terminal cart identity without reopening eligibility`() {
+        val repository = CartRecoveryStateRepository(dataSource)
+        val purchased = sampleCartState(
+            cartStatus = "PURCHASED",
+            stateVersion = 3,
+            userId = null,
+            anonymousId = "anon-terminal",
+            stitchedIdentityJson = null,
+            lastPurchaseAt = OffsetDateTime.now(),
+        )
+        val identityLinked = purchased.copy(
+            userId = "user-terminal",
+            stitchedIdentityJson = """{"linked":true}""",
+            stateVersion = 4,
+        )
+
+        repository.upsert(purchased)
+        val result = repository.upsertIdentityLink(identityLinked)
+        val loaded = repository.findByCartId(purchased.cartId)
+
+        assertEquals(CartRecoveryStateWriteResult.APPLIED, result)
+        assertNotNull(loaded)
+        assertEquals("PURCHASED", loaded.cartStatus)
+        assertEquals("user-terminal", loaded.userId)
+        assertTrue(loaded.stitchedIdentityJson?.contains("linked") == true)
+    }
+
+    @Test
     fun `recovery attempt scheduling is idempotent and status updates persist`() {
         val repository = RecoveryAttemptRepository(dataSource)
         val scheduledAt = OffsetDateTime.now().plusHours(24)
@@ -91,6 +119,37 @@ class RepositoryIntegrationTest {
         assertNotNull(attempts.first().leaseUntil)
     }
 
+    @Test
+    fun `rebind scheduled attempts updates only scheduled rows`() {
+        val repository = RecoveryAttemptRepository(dataSource)
+        val scheduledAttempt = sampleAttempt(
+            scheduledAt = OffsetDateTime.now().plusHours(24),
+            attemptId = "attempt-scheduled",
+            userId = null,
+            status = "SCHEDULED",
+        )
+        val sentAttempt = sampleAttempt(
+            scheduledAt = OffsetDateTime.now().plusHours(72),
+            attemptId = "attempt-sent",
+            userId = null,
+            status = "SENT",
+            executedAt = OffsetDateTime.now(),
+        )
+
+        assertTrue(repository.schedule(scheduledAttempt))
+        assertTrue(repository.schedule(sentAttempt))
+
+        val updatedCount = repository.rebindScheduledAttempts("cart-1", "user-rebound")
+        val attempts = repository.findByCartId("cart-1")
+        val rebound = attempts.first { it.attemptId == "attempt-scheduled" }
+        val sent = attempts.first { it.attemptId == "attempt-sent" }
+
+        assertEquals(1, updatedCount)
+        assertEquals("user-rebound", rebound.userId)
+        assertEquals(null, sent.userId)
+        assertEquals("SENT", sent.status)
+    }
+
     @BeforeEach
     fun truncateTables() {
         dataSource.connection.use { connection ->
@@ -130,14 +189,17 @@ class RepositoryIntegrationTest {
             cartId: String = "cart-1",
             cartStatus: String,
             stateVersion: Long,
+            anonymousId: String = "anon-1",
+            userId: String? = "user-1",
+            stitchedIdentityJson: String? = """{"stitched":true}""",
             lastPurchaseAt: OffsetDateTime? = null,
         ): CartRecoveryState {
             val now = OffsetDateTime.now()
             return CartRecoveryState(
                 cartId = cartId,
                 tenantId = "tenant-1",
-                anonymousId = "anon-1",
-                userId = "user-1",
+                anonymousId = anonymousId,
+                userId = userId,
                 cartStatus = cartStatus,
                 abandonmentStatus = "ACTIVE",
                 policyId = null,
@@ -147,16 +209,22 @@ class RepositoryIntegrationTest {
                 lastPurchaseAt = lastPurchaseAt,
                 stateVersion = stateVersion,
                 cartSnapshotJson = """{"items":["sku-1"]}""",
-                stitchedIdentityJson = """{"stitched":true}""",
+                stitchedIdentityJson = stitchedIdentityJson,
             )
         }
 
-        private fun sampleAttempt(scheduledAt: OffsetDateTime): RecoveryAttempt {
+        private fun sampleAttempt(
+            scheduledAt: OffsetDateTime,
+            attemptId: String = "attempt-1",
+            userId: String? = "user-1",
+            status: String = "SCHEDULED",
+            executedAt: OffsetDateTime? = null,
+        ): RecoveryAttempt {
             return RecoveryAttempt(
-                attemptId = "attempt-1",
+                attemptId = attemptId,
                 cartId = "cart-1",
                 tenantId = "tenant-1",
-                userId = "user-1",
+                userId = userId,
                 experimentId = "exp-1",
                 experimentName = "default-recovery",
                 variantId = "control",
@@ -164,12 +232,12 @@ class RepositoryIntegrationTest {
                 policyVersion = 1,
                 touchIndex = 1,
                 scheduledAt = scheduledAt,
-                executedAt = null,
+                executedAt = executedAt,
                 channel = "push",
                 templateKey = "push-default",
-                status = "SCHEDULED",
+                status = status,
                 suppressionReason = null,
-                sendIdempotencyKey = "send-1",
+                sendIdempotencyKey = "send-$attemptId",
                 frequencyCapResult = null,
                 providerResultJson = null,
             )

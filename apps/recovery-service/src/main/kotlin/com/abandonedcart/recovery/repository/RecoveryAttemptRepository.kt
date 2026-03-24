@@ -221,6 +221,30 @@ class RecoveryAttemptRepository(
         }
     }
 
+    fun rebindScheduledAttempts(cartId: String, userId: String): Int {
+        return measure("rebind_scheduled_attempts") {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(
+                    """
+                    update recovery_attempt
+                    set user_id = ?,
+                        updated_at = ?
+                    where cart_id = ?
+                      and status = 'SCHEDULED'
+                      and user_id is distinct from ?
+                    """.trimIndent(),
+                ).use { statement ->
+                    val now = OffsetDateTime.now()
+                    statement.setString(1, userId)
+                    statement.setObject(2, now)
+                    statement.setString(3, cartId)
+                    statement.setString(4, userId)
+                    statement.executeUpdate()
+                }
+            }
+        }
+    }
+
     fun updateExecutionOutcome(
         attemptId: String,
         status: String,

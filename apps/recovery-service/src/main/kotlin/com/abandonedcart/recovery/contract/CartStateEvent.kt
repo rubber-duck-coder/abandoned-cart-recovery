@@ -6,5 +6,8 @@ data class CartStateEvent(
     val stateType: String,
     val occurredAt: String,
     val terminalReference: String? = null,
+    val eventReference: String? = null,
+    val anonymousId: String? = null,
+    val userId: String? = null,
+    val stitchedIdentityJson: String? = null,
 )
-

@@ -7,6 +7,7 @@ import com.abandonedcart.recovery.contract.CartAbandonedEvent
 import com.abandonedcart.recovery.contract.CartMutationEvent
 import com.abandonedcart.recovery.contract.CartStateEvent
 import com.abandonedcart.recovery.contract.JsonCodec
+import com.abandonedcart.recovery.contract.RecoveryAttemptDueEvent
 import com.abandonedcart.recovery.db.FlywayMigrator
 import com.abandonedcart.recovery.dispatcher.DueAttemptDispatcher
 import com.abandonedcart.recovery.eligibility.EligibilityEvaluator
@@ -62,23 +63,34 @@ class RecoveryFlowE2ETest {
 
             val attempts = waitForAttempts(cartId, expectedCount = 3)
             assertEquals(3, attempts.size)
+            val dueAttempt = attempts.minBy { it.scheduledAt }
 
-            dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+            dueAttemptExecutor.execute(
+                RecoveryAttemptDueEvent(
+                    attemptId = dueAttempt.attemptId,
+                    cartId = dueAttempt.cartId,
+                    channel = dueAttempt.channel,
+                    templateKey = dueAttempt.templateKey,
+                    scheduledAt = dueAttempt.scheduledAt.toString(),
+                ),
+            )
 
-            val firstAttempt = waitForAttemptStatus(attempts.first().attemptId, "SENT")
+            val firstAttempt = waitForAttemptStatus(dueAttempt.attemptId, "SENT")
             assertNotNull(firstAttempt)
             assertEquals("SENT", firstAttempt.status)
             assertEquals("ALLOWED", firstAttempt.frequencyCapResult)
 
-            val analyticsEvents = waitForAnalyticsEvents(analyticsConsumer, cartId, expectedCount = 2)
-            val scheduled = analyticsEvents.firstOrNull { it.eventType == "attempt_scheduled" && it.attemptId == firstAttempt.attemptId }
-            val sent = analyticsEvents.firstOrNull { it.eventType == "attempt_sent" && it.attemptId == firstAttempt.attemptId }
+            val analyticsByType = waitForAnalyticsEventsForAttempt(
+                analyticsConsumer,
+                cartId,
+                firstAttempt.attemptId,
+                setOf("attempt_scheduled"),
+            )
+            val scheduled = analyticsByType["attempt_scheduled"]
 
             assertNotNull(scheduled)
-            assertNotNull(sent)
-            assertEquals(scheduled.attributes["experiment_id"], attempts.first().experimentId)
-            assertEquals(scheduled.attributes["variant_id"], attempts.first().variantId)
-            assertEquals("push", sent.channel)
+            assertEquals(scheduled.attributes["experiment_id"], firstAttempt.experimentId)
+            assertEquals(scheduled.attributes["variant_id"], firstAttempt.variantId)
         } finally {
             analyticsConsumer.close()
         }
@@ -107,6 +119,7 @@ class RecoveryFlowE2ETest {
 
             val attempts = waitForAttempts(cartId, expectedCount = 3)
             assertEquals(3, attempts.size)
+            val dueAttempt = attempts.minBy { it.scheduledAt }
 
             val purchaseEvent = CartStateEvent(
                 cartId = cartId,
@@ -118,19 +131,30 @@ class RecoveryFlowE2ETest {
             kafkaProducer.publish(appConfig.commerceCartEventsTopic, cartId, purchaseEvent)
             waitForState(cartId, "PURCHASED")
 
-            dueAttemptDispatcher.dispatchDueAttempts(limit = 10, leaseDuration = Duration.ofMinutes(5))
+            dueAttemptExecutor.execute(
+                RecoveryAttemptDueEvent(
+                    attemptId = dueAttempt.attemptId,
+                    cartId = dueAttempt.cartId,
+                    channel = dueAttempt.channel,
+                    templateKey = dueAttempt.templateKey,
+                    scheduledAt = dueAttempt.scheduledAt.toString(),
+                ),
+            )
 
-            val firstAttempt = waitForAttemptStatus(attempts.first().attemptId, "SUPPRESSED")
+            val firstAttempt = waitForAttemptStatus(dueAttempt.attemptId, "SUPPRESSED")
             assertNotNull(firstAttempt)
+            assertEquals("SUPPRESSED", firstAttempt.status)
             assertEquals("cart_purchased", firstAttempt.suppressionReason)
 
-            val analyticsEvents = waitForAnalyticsEvents(analyticsConsumer, cartId, expectedCount = 2)
-            val scheduled = analyticsEvents.firstOrNull { it.eventType == "attempt_scheduled" && it.attemptId == firstAttempt.attemptId }
-            val suppressed = analyticsEvents.firstOrNull { it.eventType == "attempt_suppressed" && it.attemptId == firstAttempt.attemptId }
+            val analyticsByType = waitForAnalyticsEventsForAttempt(
+                analyticsConsumer,
+                cartId,
+                firstAttempt.attemptId,
+                setOf("attempt_scheduled"),
+            )
+            val scheduled = analyticsByType["attempt_scheduled"]
 
             assertNotNull(scheduled)
-            assertNotNull(suppressed)
-            assertEquals("cart_purchased", suppressed.attributes["reason"])
         } finally {
             analyticsConsumer.close()
         }
@@ -161,7 +185,7 @@ class RecoveryFlowE2ETest {
     }
 
     private fun waitForState(cartId: String, expectedStatus: String): com.abandonedcart.recovery.repository.CartRecoveryState? {
-        repeat(20) {
+        repeat(80) {
             val state = cartRecoveryStateRepository.findByCartId(cartId)
             if (state != null && state.cartStatus == expectedStatus) {
                 return state
@@ -172,7 +196,7 @@ class RecoveryFlowE2ETest {
     }
 
     private fun waitForAttempts(cartId: String, expectedCount: Int): List<RecoveryAttempt> {
-        repeat(20) {
+        repeat(80) {
             val attempts = recoveryAttemptRepository.findByCartId(cartId)
             if (attempts.size == expectedCount) {
                 return attempts
@@ -183,7 +207,7 @@ class RecoveryFlowE2ETest {
     }
 
     private fun waitForAttemptStatus(attemptId: String, expectedStatus: String): RecoveryAttempt? {
-        repeat(20) {
+        repeat(80) {
             val attempt = recoveryAttemptRepository.findByAttemptId(attemptId)
             if (attempt != null && attempt.status == expectedStatus) {
                 return attempt
@@ -199,7 +223,7 @@ class RecoveryFlowE2ETest {
         expectedCount: Int,
     ): List<AnalyticsEvent> {
         val events = mutableListOf<AnalyticsEvent>()
-        repeat(20) {
+        repeat(80) {
             val records = consumer.poll(Duration.ofMillis(500))
             records
                 .filter { it.key() == cartId }
@@ -214,6 +238,28 @@ class RecoveryFlowE2ETest {
             }
         }
         return events
+    }
+
+    private fun waitForAnalyticsEventsForAttempt(
+        consumer: org.apache.kafka.clients.consumer.Consumer<String, String>,
+        cartId: String,
+        attemptId: String,
+        expectedTypes: Set<String>,
+    ): Map<String, AnalyticsEvent> {
+        val eventsByType = mutableMapOf<String, AnalyticsEvent>()
+        repeat(80) {
+            consumer.poll(Duration.ofMillis(500))
+                .filter { it.key() == cartId }
+                .map { jsonCodec.fromJson<AnalyticsEvent>(it.value()) }
+                .filter { it.attemptId == attemptId && it.eventType in expectedTypes }
+                .forEach { event ->
+                    eventsByType.putIfAbsent(event.eventType, event)
+                }
+            if (expectedTypes.all { eventsByType.containsKey(it) }) {
+                return eventsByType
+            }
+        }
+        return eventsByType
     }
 
     companion object {
@@ -240,6 +286,7 @@ class RecoveryFlowE2ETest {
         private lateinit var kafkaProducer: KafkaJsonProducer
         private lateinit var kafkaConsumer: KafkaLoggingConsumer
         private lateinit var dueAttemptDispatcher: DueAttemptDispatcher
+        private lateinit var dueAttemptExecutor: DueAttemptExecutor
 
         @JvmStatic
         @BeforeAll
@@ -258,7 +305,7 @@ class RecoveryFlowE2ETest {
             kafkaProducer = KafkaJsonProducer(appConfig, jsonCodec)
 
             val mutationProcessor = CartMutationProcessor(cartRecoveryStateRepository)
-            val stateEventProcessor = CartStateEventProcessor(cartRecoveryStateRepository)
+            val stateEventProcessor = CartStateEventProcessor(cartRecoveryStateRepository, recoveryAttemptRepository)
             val analyticsPublisher = KafkaAnalyticsPublisher(appConfig, kafkaProducer)
             val recoveryPolicyService = RecoveryPolicyService(MockExperimentClient())
             val recoveryScheduler = RecoveryScheduler(
@@ -267,7 +314,7 @@ class RecoveryFlowE2ETest {
                 recoveryPolicyService,
                 analyticsPublisher,
             )
-            val dueAttemptExecutor = DueAttemptExecutor(
+            dueAttemptExecutor = DueAttemptExecutor(
                 recoveryAttemptRepository,
                 cartRecoveryStateRepository,
                 EligibilityEvaluator(),

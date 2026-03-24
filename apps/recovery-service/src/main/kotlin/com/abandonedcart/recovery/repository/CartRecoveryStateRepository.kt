@@ -102,6 +102,78 @@ class CartRecoveryStateRepository(
         }
     }
 
+    fun upsertIdentityLink(state: CartRecoveryState): CartRecoveryStateWriteResult {
+        return measure("upsert_identity_link") {
+            val now = OffsetDateTime.now()
+            dataSource.connection.use { connection ->
+                connection.autoCommit = false
+                val updated = connection.prepareStatement(
+                    """
+                    insert into cart_recovery_state (
+                      cart_id, tenant_id, anonymous_id, user_id, cart_status, abandonment_status,
+                      policy_id, policy_version, last_cart_mutation_at, last_critical_event_at,
+                      last_purchase_at, state_version, cart_snapshot_json, stitched_identity_json,
+                      created_at, updated_at
+                    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, cast(? as jsonb), cast(? as jsonb), ?, ?)
+                    on conflict (cart_id) do update
+                      set tenant_id = excluded.tenant_id,
+                          anonymous_id = excluded.anonymous_id,
+                          user_id = excluded.user_id,
+                          cart_status = excluded.cart_status,
+                          abandonment_status = excluded.abandonment_status,
+                          policy_id = excluded.policy_id,
+                          policy_version = excluded.policy_version,
+                          last_cart_mutation_at = excluded.last_cart_mutation_at,
+                          last_critical_event_at = excluded.last_critical_event_at,
+                          last_purchase_at = excluded.last_purchase_at,
+                          state_version = excluded.state_version,
+                          cart_snapshot_json = excluded.cart_snapshot_json,
+                          stitched_identity_json = excluded.stitched_identity_json,
+                          updated_at = excluded.updated_at
+                    where cart_recovery_state.state_version < excluded.state_version
+                       or (
+                         cart_recovery_state.state_version = excluded.state_version
+                         and (
+                           cart_recovery_state.anonymous_id is distinct from excluded.anonymous_id
+                           or cart_recovery_state.user_id is distinct from excluded.user_id
+                           or cart_recovery_state.stitched_identity_json is distinct from excluded.stitched_identity_json
+                         )
+                       )
+                    """.trimIndent(),
+                ).use { statement ->
+                    statement.setString(1, state.cartId)
+                    statement.setString(2, state.tenantId)
+                    statement.setNullableText(3, state.anonymousId)
+                    statement.setNullableText(4, state.userId)
+                    statement.setString(5, state.cartStatus)
+                    statement.setString(6, state.abandonmentStatus)
+                    statement.setNullableText(7, state.policyId)
+                    statement.setNullableInt(8, state.policyVersion)
+                    statement.setNullableOffsetDateTime(9, state.lastCartMutationAt)
+                    statement.setNullableOffsetDateTime(10, state.lastCriticalEventAt)
+                    statement.setNullableOffsetDateTime(11, state.lastPurchaseAt)
+                    statement.setLong(12, state.stateVersion)
+                    statement.setString(13, state.cartSnapshotJson)
+                    statement.setString(14, state.stitchedIdentityJson ?: "null")
+                    statement.setOffsetDateTime(15, now)
+                    statement.setOffsetDateTime(16, now)
+                    statement.executeUpdate()
+                }
+                if (updated > 0) {
+                    connection.commit()
+                    return@measure CartRecoveryStateWriteResult.APPLIED
+                }
+                val existing = connection.findCartState(state.cartId)
+                connection.commit()
+                return@measure if (existing == null) {
+                    CartRecoveryStateWriteResult.NO_OP_STALE_VERSION
+                } else {
+                    CartRecoveryStateWriteResult.NO_OP_STALE_VERSION
+                }
+            }
+        }
+    }
+
     private inline fun <T> measure(operation: String, block: () -> T): T {
         val startedAt = System.nanoTime()
         var outcome = "success"

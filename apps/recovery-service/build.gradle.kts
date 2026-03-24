@@ -28,6 +28,28 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
 }
 
-tasks.test {
+val integrationTest by tasks.registering(Test::class) {
+    description = "Runs integration and end-to-end tests."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
+    filter {
+        includeTestsMatching("*IntegrationTest")
+        includeTestsMatching("*E2ETest")
+    }
+    shouldRunAfter(tasks.test)
+}
+
+tasks.test {
+    description = "Runs unit tests only."
+    useJUnitPlatform()
+    filter {
+        excludeTestsMatching("*IntegrationTest")
+        excludeTestsMatching("*E2ETest")
+    }
+}
+
+tasks.check {
+    dependsOn(integrationTest)
 }
