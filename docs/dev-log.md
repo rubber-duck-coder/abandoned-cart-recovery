@@ -1828,6 +1828,56 @@ The final polish review should focus on submission quality, not new scope expans
 ---
 
 ---
+Timestamp: 2026-03-23 17:49 local
+
+User Request:
+Commit and push the workflow updates, then assess whether any further polishing is needed before submitting the take-home.
+
+Codex Plan:
+- Record the exact commit and push result for the workflow update.
+- Keep the append-only development log aligned with the published repository history.
+- Use the remaining review step to identify only high-value final polish items.
+
+Actions Taken:
+- Created commit `5f71dea` with the Makefile, README workflow improvements, plan renumbering to `004`, and the dev-log updates.
+- Pushed `main` to `origin` with `git push origin main`.
+- Appended this publication entry to `docs/dev-log.md`.
+
+Outcome:
+The workflow update is published on `origin/main` in commit `5f71dea`. The repository now has a simpler local onboarding path with `make` targets and a clearer README.
+
+Notes:
+This log entry itself is still local until it is included in the follow-up log-only commit. Unrelated untracked `.kotlin/` and `excalidraw.log` remain excluded.
+---
+
+---
+Timestamp: 2026-03-23 17:50 local
+
+User Request:
+Commit and push the workflow updates, then assess whether any further polishing is needed before submitting the take-home.
+
+Codex Plan:
+- Record the workflow-update publication result in the append-only log.
+- Review the repository for any remaining high-value submission polish items without reopening scope.
+- Keep the final recommendations limited to optional improvements unless a real blocker is found.
+
+Actions Taken:
+- Reviewed `README.md`, `Makefile`, and the current repo status after publishing commit `5f71dea`.
+- Searched the repository for stale references and obvious polish markers with `rg`.
+- Confirmed that the remaining uncommitted change was the local dev-log publication entry.
+- Appended this outcome entry to `docs/dev-log.md`.
+
+Outcome:
+No blocker-level gaps were found. The repository is in submission shape: the prototype runs locally, tests pass, load workflows exist, plans and RFCs are in place, and the onboarding path is materially better with the new Makefile and README. The remaining polish items are optional rather than necessary for submission.
+
+Notes:
+The highest-value optional polish ideas are:
+- add a short reviewer-oriented section near the top of `README.md` that points to the primary RFC, the main execution plans, and the fastest local verification commands
+- add a single `make verify` or `make smoke` target that runs the most important local checks in one step
+- commit this dev-log outcome entry so the repo history fully reflects the latest publication and assessment
+---
+
+---
 Timestamp: 2026-03-23 17:44 local
 
 User Request:
